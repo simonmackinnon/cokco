@@ -54,6 +54,40 @@
   #title .credit{font-size:13px;opacity:.6;margin-top:4px;letter-spacing:.3px;}
   .hidden{display:none!important;}
   kbd{background:rgba(255,255,255,.18);border-radius:5px;padding:1px 6px;font-size:12px;}
+
+  /* ---- on-screen touch controls (shown only on touch devices, or ?touch=1) ---- */
+  #touch{position:absolute;inset:0;z-index:6;pointer-events:none;display:none;}
+  html.touch #touch{display:block;}
+  .tcb{position:absolute;display:none;align-items:center;justify-content:center;
+    width:62px;height:62px;border-radius:50%;
+    border:2px solid rgba(255,255,255,.55);background:rgba(10,14,24,.4);
+    color:#fff;font-size:24px;line-height:1;font-family:inherit;
+    pointer-events:auto;touch-action:none;user-select:none;-webkit-user-select:none;
+    -webkit-tap-highlight-color:transparent;}
+  .tcb:active{background:rgba(255,255,255,.3);transform:scale(.94);}
+  .tcb.tcs{width:42px;height:42px;font-size:18px;border-width:1px;background:rgba(10,14,24,.34);}
+  .b-left  {left:calc(18px + env(safe-area-inset-left));  bottom:calc(26px + env(safe-area-inset-bottom));}
+  .b-right {left:calc(100px + env(safe-area-inset-left));  bottom:calc(26px + env(safe-area-inset-bottom));}
+  .b-jump  {right:calc(20px + env(safe-area-inset-right)); bottom:calc(24px + env(safe-area-inset-bottom));width:80px;height:80px;font-size:30px;}
+  .b-act   {right:calc(106px + env(safe-area-inset-right));bottom:calc(52px + env(safe-area-inset-bottom));}
+  .tcs     {top:calc(10px + env(safe-area-inset-top));}
+  .b-bag   {right:calc(106px + env(safe-area-inset-right));}
+  .b-prob  {right:calc(58px + env(safe-area-inset-right));}
+  .b-menu  {right:calc(10px + env(safe-area-inset-right));}
+  #touch[data-mode="play"] .tcb{display:flex;}
+  #touch[data-mode="dialogue"] .b-left,
+  #touch[data-mode="dialogue"] .b-right,
+  #touch[data-mode="dialogue"] .b-act{display:flex;}
+  #touch[data-mode="minigame"] .b-left,
+  #touch[data-mode="minigame"] .b-right,
+  #touch[data-mode="minigame"] .b-menu{display:flex;}
+  html.touch #hint{bottom:100px;}
+  @media (max-width:380px){
+    .tcb{width:54px;height:54px;font-size:21px;}
+    .b-right{left:calc(84px + env(safe-area-inset-left));}
+    .b-jump{width:70px;height:70px;font-size:26px;}
+    .b-act{right:calc(92px + env(safe-area-inset-right));bottom:calc(46px + env(safe-area-inset-bottom));}
+  }
 </style>
 </head>
 <body>
@@ -65,6 +99,15 @@
     <div id="toast"></div>
     <div id="dialogue" class="hidden"><div class="who"></div><div class="txt"></div><div class="go">&#9654; <kbd>E</kbd> / <kbd>Space</kbd></div></div>
     <div id="panel" class="panel hidden"></div>
+    <div id="touch" data-mode="title">
+      <button class="tcb b-left"  data-hold="ArrowLeft"  aria-label="Move left">&#9664;</button>
+      <button class="tcb b-right" data-hold="ArrowRight" aria-label="Move right">&#9654;</button>
+      <button class="tcb b-jump"  data-hold="ArrowUp"    aria-label="Jump">&#9650;</button>
+      <button class="tcb b-act"   data-tap="KeyE"        aria-label="Talk or open">E</button>
+      <button class="tcb tcs b-bag"  data-tap="KeyI"     aria-label="Bag">&#128188;</button>
+      <button class="tcb tcs b-prob" data-tap="KeyJ"     aria-label="Problems">&#128203;</button>
+      <button class="tcb tcs b-menu" data-tap="Escape"   aria-label="Menu">&#9776;</button>
+    </div>
   </div>
   <div id="title">
     <h1>COKCO</h1>
@@ -153,6 +196,57 @@ function tapped(action){
 }
 function key(...codes){ return codes.some(c => pressed.has(c)); }
 function clearTaps(){ pressed.clear(); }
+
+/* ---------- 2b. on-screen touch controls ----------
+   The buttons in #touch feed the same `keys` / `pressed` sets the keyboard uses,
+   so the rest of the game needs no mobile-specific code.
+     data-hold="Code"  → key is down while the button is held (walk, jump)
+     data-tap="Code"   → key registers for a single frame on press (talk, bag, menu)
+   Visibility per game mode is pure CSS driven by #touch[data-mode]. */
+const touchEl = document.getElementById('touch');
+(function initTouch(){
+  const qs = (typeof location !== 'undefined' && location.search) || '';
+  const forced = /[?&]touch=1/.test(qs);
+  const isTouch = forced ||
+    (typeof matchMedia === 'function' && matchMedia('(hover: none) and (pointer: coarse)').matches) ||
+    (typeof window !== 'undefined' && 'ontouchstart' in window) ||
+    (typeof navigator !== 'undefined' && navigator.maxTouchPoints > 0);
+  if (isTouch && document.documentElement) document.documentElement.classList.add('touch');
+  if (!touchEl || !touchEl.querySelectorAll) return;
+
+  const codeDown = c => { if (!keys.has(c)) pressed.add(c); keys.add(c); };
+  const codeUp   = c => { keys.delete(c); };
+
+  touchEl.querySelectorAll('button').forEach(btn => {
+    const hold = btn.dataset.hold;
+    const code = hold || btn.dataset.tap;
+    if (!code) return;
+    const down = e => {
+      e.preventDefault();
+      try { btn.setPointerCapture(e.pointerId); } catch (_) {}
+      codeDown(code);
+      if (!hold) codeUp(code);            // tap: seen for one frame, then released
+    };
+    const up = e => { if (e) e.preventDefault(); if (hold) codeUp(code); };
+    btn.addEventListener('pointerdown', down);
+    btn.addEventListener('pointerup', up);
+    btn.addEventListener('pointercancel', up);
+    btn.addEventListener('lostpointercapture', up);
+    btn.addEventListener('contextmenu', e => e.preventDefault());
+  });
+
+  // tap the dialogue box itself to advance it
+  const dlg = document.getElementById('dialogue');
+  if (dlg) dlg.addEventListener('pointerdown', e => {
+    if (mode === 'dialogue') { e.preventDefault(); pressed.add('KeyE'); }
+  });
+
+  // drop any held buttons if the tab is backgrounded / loses focus
+  const releaseAll = () => keys.clear();
+  addEventListener('blur', releaseAll);
+  document.addEventListener('visibilitychange', () => { if (document.hidden) releaseAll(); });
+})();
+function syncTouchUI(){ if (touchEl && touchEl.dataset.mode !== mode) touchEl.dataset.mode = mode; }
 
 /* ---------- 3. save / load ---------- */
 const SAVE_KEY = 'cokco-save-v2';
@@ -1066,6 +1160,7 @@ function update(){
   clearTaps();
 }
 function syncDOM(){
+  syncTouchUI();
   const showHud = mode === 'play' || mode === 'dialogue';
   document.getElementById('hud').classList.toggle('hidden', !showHud);
   document.getElementById('hint').classList.toggle('hidden', mode !== 'play');

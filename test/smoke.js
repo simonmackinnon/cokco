@@ -31,6 +31,7 @@ function makeEl(id) {
   const el = {
     id,
     _class: new Set(),
+    _ev: {},
     textContent: '',
     innerHTML: '',
     style: {},
@@ -44,15 +45,37 @@ function makeEl(id) {
       contains: c => el._class.has(c),
     },
     querySelector: sel => makeEl(id + ' ' + sel),
-    querySelectorAll: () => [],
+    querySelectorAll: () => el._buttons || [],
     getContext: () => ctxProxy,
-    addEventListener() {},
+    addEventListener(type, fn) { (el._ev[type] ||= []).push(fn); },
+    setPointerCapture() {},
+    _fire(type, ev = {}) { (el._ev[type] || []).forEach(fn => fn({ preventDefault() {}, ...ev })); },
     appendChild() {},
   };
   return el;
 }
+function makeButton(spec) {
+  const b = makeEl('btn:' + (spec.hold || spec.tap));
+  b.dataset = spec;
+  return b;
+}
 const elCache = {};
-const getEl = id => (elCache[id] ||= makeEl(id));
+const getEl = id => {
+  if (!elCache[id]) {
+    const el = makeEl(id);
+    if (id === 'touch') {
+      // mirror the real #touch button set so the touch-control wiring runs
+      el._buttons = [
+        makeButton({ hold: 'ArrowLeft' }), makeButton({ hold: 'ArrowRight' }),
+        makeButton({ hold: 'ArrowUp' }), makeButton({ tap: 'KeyE' }),
+        makeButton({ tap: 'KeyI' }), makeButton({ tap: 'KeyJ' }), makeButton({ tap: 'Escape' }),
+      ];
+    }
+    elCache[id] = el;
+  }
+  return elCache[id];
+};
+const touchBtn = code => getEl('touch')._buttons.find(b => (b.dataset.hold || b.dataset.tap) === code);
 
 const listeners = {};
 function on(type, fn) { (listeners[type] ||= []).push(fn); }
@@ -66,10 +89,13 @@ const sandbox = {
     querySelector: sel => getEl(sel),
     querySelectorAll: () => [],
     addEventListener: on,
+    documentElement: makeEl('html'),
+    hidden: false,
   },
   window: { addEventListener: on, devicePixelRatio: 2, innerWidth: 1200, innerHeight: 700 },
   addEventListener: on,
-  navigator: { userAgent: 'node' },
+  matchMedia: () => ({ matches: true, addEventListener() {}, addListener() {} }),
+  navigator: { userAgent: 'node', maxTouchPoints: 5 },
   performance: { now: () => T },
   requestAnimationFrame: fn => { rafCb = fn; },
   localStorage: {
@@ -127,6 +153,28 @@ try {
   check('Cokco left the ground after a jump', g().P.airTime > 0 || g().P.vy !== 0);
   for (let i = 0; i < 40; i++) step();
   check('Cokco landed again', g().P.grounded === true);
+
+  // --- on-screen touch controls feed the same input path ---
+  check('touch mode marker follows game mode', getEl('touch').dataset.mode === 'play');
+  const tx0 = g().P.x;
+  touchBtn('ArrowRight')._fire('pointerdown', { pointerId: 1 });
+  for (let i = 0; i < 25; i++) step();
+  check('holding the on-screen ▶ moves Cokco right', g().P.x > tx0 + 20);
+  touchBtn('ArrowRight')._fire('pointerup', { pointerId: 1 });
+  for (let i = 0; i < 20; i++) step();
+  check('releasing the ▶ button stops Cokco', Math.abs(g().P.vx) < 5);
+  touchBtn('ArrowUp')._fire('pointerdown', { pointerId: 1 });
+  step();
+  touchBtn('ArrowUp')._fire('pointerup', { pointerId: 1 });
+  for (let i = 0; i < 6; i++) step();
+  check('tapping the on-screen ▲ makes Cokco jump', g().P.grounded === false);
+  for (let i = 0; i < 45; i++) step();
+  touchBtn('KeyI')._fire('pointerdown', { pointerId: 1 });
+  step();
+  check('on-screen bag button opens the bag', g().mode === 'panel');
+  touchBtn('Escape')._fire('pointerdown', { pointerId: 1 });
+  step();
+  check('on-screen menu button closes the panel', g().mode === 'play');
 
   // elevator runs on its own; after ~6s it should have touched the top
   for (let i = 0; i < 140; i++) step(50);

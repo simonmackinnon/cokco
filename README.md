@@ -21,6 +21,9 @@ That's the whole game. Progress saves automatically in that browser.
 | Problems (quest log) | `J` |
 | Menu (Go Home, Map, Reset) | `Esc` |
 
+On a phone/tablet, on-screen buttons appear automatically (move ◀ ▶, jump ▲,
+talk **E**, and 🎒 📋 ☰). Add `?touch=1` to the URL to force them on a desktop.
+
 ## What's in this first version
 
 - **Cokco** — a round, hairless made-up creature with stick arms and legs.
