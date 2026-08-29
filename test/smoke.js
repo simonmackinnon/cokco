@@ -12,6 +12,7 @@ const code = html.match(/<script>([\s\S]*?)<\/script>/)[1] + `
   get mode(){return mode}, get world(){return world}, get P(){return P},
   get G(){return G}, get MG(){return MG}, get trans(){return trans},
   get panelKind(){return panelKind}, get doorChoices(){return doorChoices},
+  get FORMS(){return FORMS},
   invAdd, invCount, invRemove, travel, startMinigame, craftRecipe, dayFactor,
 };`;
 
@@ -209,12 +210,12 @@ try {
   press('Escape'); step();
 
   // --- doors: choose one by number key, hop to it ---
-  const d0 = g().world.doors[0];
+  const d0 = g().world.doors.find(d => d.num === 1);
   g().P.x = d0.x - g().P.w / 2; g().P.y = d0.y - g().P.h;
   step();
   press('KeyE'); step();
   check('door opens the "which door?" panel', g().mode === 'panel' && g().panelKind === 'door');
-  const dest = g().world.doors[2];               // door number "3" in-world
+  const dest = g().world.doors.find(d => d.num === 3);
   press('Digit3'); step();
   check('picking door 3 warps Cokco there', g().mode === 'play' && Math.abs(g().P.x - (dest.x - g().P.w / 2)) < 4);
 
@@ -227,6 +228,70 @@ try {
   check('opening a chest adds coins or a gem', g().G.coins + g().G.gems > wealth0);
   check('chest marked opened in save', g().G.chests['home:c0'] === true);
   g().P.x = 120; g().P.y = 690;
+
+  // --- Cokco-orbs: unlock hammer, change form with Q ---
+  g().G.orbs.hammer = true;
+  press('KeyQ'); step();
+  check('Q switches to hammer form', g().P.form === 'hammer' && g().P.w === g().FORMS.hammer.w);
+  press('KeyQ'); step();
+  check('Q cycles back to normal', g().P.form === 'normal' && g().P.w === 26);
+
+  // --- hammer form smashes the home boulder ---
+  press('KeyQ'); step();                                  // -> hammer
+  const rock = g().world.solids.find(s => s.kind === 'rock');
+  g().P.x = rock.x - g().P.w - 2; g().P.y = rock.y + rock.h - g().P.h;
+  for (let i = 0; i < 4; i++) step();
+  press('KeyE'); step();
+  check('hammer form smashes the boulder', g().G.rocks['home:r0'] === true);
+  press('KeyQ'); step();                                  // -> normal
+
+  // --- the Flattening Centre: door -> Sxco -> Orb Card -> scanner -> Slime Orb ---
+  const centreDoor = g().world.doors.find(d => d.target === 'flatten');
+  g().P.x = centreDoor.x - g().P.w / 2; g().P.y = centreDoor.y - g().P.h;
+  step(); press('KeyE'); step();
+  for (let i = 0; i < 40; i++) step();
+  check('entered the Flattening Centre', g().world.key === 'flatten');
+  g().invAdd('urchin', 1);
+  const sxco = g().world.npcs.find(n => n.name === 'Sxco');
+  g().P.x = sxco.x - g().P.w / 2; g().P.y = sxco.y - g().P.h;
+  step();
+  press('KeyE'); step();                                  // open Sxco
+  for (let i = 0; i < 3; i++) { press('KeyE'); step(); }  // 3 lines -> close -> flatten
+  check('Sxco flattens a Sea Urchin into a Flat Urchin', g().invCount('flat-urchin') === 1 && g().mode === 'play');
+  g().G.coins += 2;
+  g().craftRecipe('orb-card');
+  check('Flat Urchin + coins craft an Orb Card', g().invCount('orb-card') === 1);
+  const scanner = g().world.machines[0];
+  g().P.x = scanner.x - g().P.w / 2; g().P.y = scanner.y - g().P.h;
+  step();
+  press('KeyE'); step();
+  check('scanning the Orb Card unlocks the Slime Orb', g().G.orbs.slime === true);
+  check('the Orb Card is consumed by the scanner', g().invCount('orb-card') === 0);
+
+  // --- swimming in the ocean, and slime oozing through the crack ---
+  g().travel('ocean', 'fromHome');
+  for (let i = 0; i < 60; i++) step();
+  check('in the Ocean layer', g().world.key === 'ocean');
+  const oy0 = g().P.y;
+  press('ArrowUp'); step();
+  for (let i = 0; i < 25; i++) step();
+  check('pressing up makes Cokco swim upward', g().P.y < oy0 - 20);
+  release('ArrowUp');
+
+  const tight = g().world.solids.find(s => s.kind === 'tight');
+  g().P.floatT = 0;
+  g().P.x = tight.x - 30; g().P.y = (tight.y + tight.h) - 34; g().P.vx = 0; g().P.vy = 0;
+  step();
+  press('KeyQ'); step();                                  // normal -> slime
+  check('became slime form', g().P.form === 'slime');
+  press('ArrowRight');
+  for (let i = 0; i < 100; i++) step();
+  release('ArrowRight');
+  check('slime oozed through the crack to the hidden gem', g().G.picked['pk:ocean:0'] === true);
+  // return to normal form for the remaining (form-agnostic) checks
+  g().P.x = 150; g().P.y = 700;
+  for (let k = 0; k < 3 && g().P.form !== 'normal'; k++) { press('KeyQ'); step(); }
+  check('cycled Cokco back to normal form', g().P.form === 'normal');
 
   // bag panel
   press('KeyI'); step();

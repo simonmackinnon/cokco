@@ -58,15 +58,26 @@ tracks what the code does so far.
 | Chests with Cokco-coins / rarely gems; rare gem boxes always gems | `chests` + `gemBoxes` in `WORLDS`; `G.coins` / `G.gems` counters, HUD-shown |
 | Day & night on the user's real system time | `dayFactor()` off `new Date()`; `drawNightTint()` + sky blend + moon/stars; a Lantern softens it |
 
+## Avery's round-3 feedback (built)
+
+| Feedback | In the game |
+| --- | --- |
+| Cokco-orbs — transform into an element/thing (slime, hammer, …) | `FORMS` + `cycleForm()` (`Q` / touch button). **slime** shrinks the body & skips `kind:'tight'` solids; **hammer** smashes `kind:'rock'` solids on `E`. `drawCokco()` branches per form. More orbs = add to `FORMS` + a `G.orbs` flag |
+| Challenges/NPC problems that need the orbs | quests `hammer` (Boulda → Hammer Orb → smash the boulder) and `slime` (Nook → the sealed crack) |
+| Swimming — press up to float up 5s, then left/right to swim | the `w.floaty` branch of `updatePlay()` — `P.floatT` buoyancy, wider horizontal control, gentle sink otherwise |
+| NPC problem only solvable by swimming | quest `swim` (Marlo's Spyglass, atop a pillar higher than any jump) |
+| Sea-Urchin Flattening Centre — enter, talk to a *moving* NPC named **Sxco**, he flattens urchins at his machine | new `flatten` world reached by a `target` door at Home; `npcs[].patrol` makes Sxco pace; `talkTo` `action:'flatten'` → `flattenUrchin()` (Sea Urchin → Flat Urchin) |
+| Put the flat urchin in a card; scan the card at a special machine → a new orb | `RECIPES` `orb-card` (Flat Urchin + 2 coins); `machines` `kind:'scanner'` + `scanCard()` → unlocks the next orb (Slime first). Different scanners could grant different orbs later |
+
 ## Roadmap (not built yet)
 
 - **Two-player** — split input (P2 on `IJKL` or a gamepad), shared screen or
   drop-in co-op. The blue page starts this thought but doesn't finish it.
-- **Enterable houses** — "if stood on → go to house": step onto a doorway and load
-  a small interior scene (shops, the craft-house inside).
-- **Placing blocks** — the Sea Urchin Block is craftable but can't be placed yet;
-  a place/pick-up mechanic would make it a real building block.
-- **Inter-world doors** and **bootstrap-obtained crafting tables** (craft / buy / find).
+- **More orbs** — the system takes a name in `FORMS` + a `G.orbs` flag + a
+  `drawCokco` branch; wire each to a new `kind:` of solid or interaction.
+- **Placing blocks** — the Sea Urchin Block is craftable but can't be placed yet.
+- **Inter-world doors everywhere** (only the Flattening Centre uses one so far) and
+  **bootstrap-obtained crafting tables** (craft / buy / find).
 - **More layers** — the design says the worlds go on forever. Add `WORLDS` entries
   and chain drop-holes. Each new worm/NPC adds a problem.
 - **Deeper crafting chains** — recipes that need items from several challenges;

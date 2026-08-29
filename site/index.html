@@ -74,10 +74,12 @@
   .b-jump  {right:calc(20px + env(safe-area-inset-right)); bottom:calc(24px + env(safe-area-inset-bottom));width:80px;height:80px;font-size:30px;}
   .b-act   {right:calc(106px + env(safe-area-inset-right));bottom:calc(52px + env(safe-area-inset-bottom));}
   .tcs     {top:calc(10px + env(safe-area-inset-top));}
-  .b-bag   {right:calc(106px + env(safe-area-inset-right));}
-  .b-prob  {right:calc(58px + env(safe-area-inset-right));}
+  .b-bag   {right:calc(154px + env(safe-area-inset-right));}
+  .b-prob  {right:calc(106px + env(safe-area-inset-right));}
+  .b-orb   {right:calc(58px + env(safe-area-inset-right));}
   .b-menu  {right:calc(10px + env(safe-area-inset-right));}
   #touch[data-mode="play"] .tcb{display:flex;}
+  #touch:not(.has-orb) .b-orb{display:none!important;}
   #touch[data-mode="dialogue"] .b-left,
   #touch[data-mode="dialogue"] .b-right,
   #touch[data-mode="dialogue"] .b-act{display:flex;}
@@ -109,6 +111,7 @@
       <button class="tcb b-act"   data-tap="KeyE"        aria-label="Talk or open">E</button>
       <button class="tcb tcs b-bag"  data-tap="KeyI"     aria-label="Bag">&#128188;</button>
       <button class="tcb tcs b-prob" data-tap="KeyJ"     aria-label="Problems">&#128203;</button>
+      <button class="tcb tcs b-orb"  data-tap="KeyQ"     aria-label="Change form">&#9210;</button>
       <button class="tcb tcs b-menu" data-tap="Escape"   aria-label="Menu">&#9776;</button>
     </div>
   </div>
@@ -249,31 +252,46 @@ const touchEl = document.getElementById('touch');
   addEventListener('blur', releaseAll);
   document.addEventListener('visibilitychange', () => { if (document.hidden) releaseAll(); });
 })();
-function syncTouchUI(){ if (touchEl && touchEl.dataset.mode !== mode) touchEl.dataset.mode = mode; }
+function syncTouchUI(){
+  if (!touchEl) return;
+  if (touchEl.dataset.mode !== mode) touchEl.dataset.mode = mode;
+  touchEl.classList.toggle('has-orb', !!(G.orbs && (G.orbs.slime || G.orbs.hammer)));
+}
 
 /* ---------- 3. save / load ---------- */
 const SAVE_KEY = 'cokco-save-v2';
 function blankSave(){
   return {
     world: 'home', px: null, py: null,
-    quests: { ocean:'inactive', craft:'inactive', pearl:'inactive' },
+    quests: { ocean:'inactive', craft:'inactive', pearl:'inactive',
+              hammer:'inactive', swim:'inactive', slime:'inactive' },
     flags:  { greenStairs:false, oceanCalm:false, grabber:false, allSolvedSeen:false },
+    orbs:   { hammer:false, slime:false },   // unlocked Cokco-orb forms
     inv: [],            // [{id, qty}]  -  10 slots, 20 per slot
     coins: 0,           // Cokco-coins (from chests)
     gems: 0,            // gems (rare - from chests / gem boxes)
     mgCap: 6,           // sea-urchin basket size (grows to 10)
     boxes: {},          // "world:index" -> true once a box is popped
     chests: {},         // "world:cN" / "world:gN" -> true once a chest/gem-box is opened
+    rocks: {},          // "world:rN" -> true once smashed by hammer form
     picked: {},         // "pk:world:index" -> true once a floor pickup is taken
   };
 }
 let G = loadGame();
 function loadGame(){
+  const base = blankSave();
   try {
     const s = JSON.parse(localStorage.getItem(SAVE_KEY));
-    if (s && s.quests) return Object.assign(blankSave(), s);
+    if (s && s.quests){
+      const g = Object.assign(base, s);
+      for (const k in blankSave().quests) if (!(k in g.quests)) g.quests[k] = 'inactive';
+      g.flags = Object.assign(blankSave().flags, g.flags || {});
+      g.orbs  = Object.assign(blankSave().orbs,  g.orbs  || {});
+      for (const k of ['boxes','chests','rocks','picked']) g[k] = g[k] || {};
+      return g;
+    }
   } catch (e) {}
-  return blankSave();
+  return base;
 }
 function persist(){ try { localStorage.setItem(SAVE_KEY, JSON.stringify(G)); } catch (e) {} }
 function hasSave(){ try { return !!localStorage.getItem(SAVE_KEY); } catch (e) { return false; } }
@@ -286,6 +304,9 @@ const ITEMS = {
   grabber:       { name: 'Grabber',         icon: '🧤' },
   'urchin-block':{ name: 'Sea Urchin Block', icon: '🧱', art: 'block' },    // crafted from sea urchins
   lantern:       { name: 'Lantern',         icon: '🏮' },                    // softens the night
+  'flat-urchin': { name: 'Flat Urchin',     icon: '🫓', art: 'flat' },       // Sxco's press flattens a Sea Urchin
+  'orb-card':    { name: 'Orb Card',        icon: '🎴' },                    // scan at an Orb Scanner -> new orb
+  spyglass:      { name: 'Spyglass',        icon: '🔭' },
 };
 
 // crafting-table recipes  (have()/takeCost() route gems+coins to their own counters)
@@ -294,6 +315,8 @@ const RECIPES = [
     blurb: 'A sturdy spiky block, packed from sea urchins.' },
   { id: 'lantern', name: 'Lantern', out: 1, cost: [['shell', 4], ['gem', 1]],
     blurb: 'Carry it to see better after dark.' },
+  { id: 'orb-card', name: 'Orb Card', out: 1, cost: [['flat-urchin', 1], ['coin', 2]],
+    blurb: 'Seal a Flat Urchin in a card. Scan it at an Orb Scanner.' },
 ];
 function have(id){ return id === 'gem' ? G.gems : id === 'coin' ? G.coins : invCount(id); }
 function takeCost(id, n){ if (id === 'gem') G.gems -= n; else if (id === 'coin') G.coins -= n; else invRemove(id, n); }
@@ -335,18 +358,23 @@ function invRemove(id, n){
      boxes    : {x,y,w,h, gives, n}   bonk from below or press E -> pops open
      pickups  : {x,y, id}             floating collectible, taken once
      holes    : {x,y,w,h, target, arrival}   fall in -> go to another world
-     npcs     : {x,y (feet), name, color, shape, quest?, talk?, action?}
+     npcs     : {x,y (feet), name, color, shape, quest?, talk?, action?, patrol?}
+                patrol: px -> the NPC paces back and forth that far (a "moving" NPC)
      tables   : {x,y (feet)}          crafting table - press E to craft
      doors    : {x,y (feet)}          press E to hop to another door in the same world
+                {x,y, target, arrival} -> a door into another world instead
      chests   : {x,y (feet)}          press E once -> Cokco-coins, rarely a gem
      gemBoxes : {x,y (feet)}          rare - press E once -> always gems
+     machines : {x,y (feet), kind}    kind:'scanner' -> scan an Orb Card for a new orb
+     solids kind:'rock'  -> only hammer-form Cokco can smash it (press E)
+     solids kind:'tight' -> only slime-form Cokco fits through
    --------------------------------------------------------------------- */
 const WORLDS = {
 
   home: {
     name: 'Home', bg: 'home', w: 2800, h: 1050,
     gravity: 1300, jump: -430, maxFall: 900,
-    arrivals: { spawn: {x:120, y:690}, fromOcean: {x:160, y:-50, vy:220} },
+    arrivals: { spawn: {x:120, y:690}, fromOcean: {x:160, y:-50, vy:220}, fromFlatten: {x:150, y:690} },
     solids: [
       { x:0,    y:770, w:1922, h:280, kind:'ground' },
       { x:2040, y:770, w:760,  h:280, kind:'ground' },
@@ -362,6 +390,7 @@ const WORLDS = {
       { x:1252, y:326, w:46, h:10, kind:'green' },
       { x:1288, y:312, w:46, h:10, kind:'green' },
       { x:1322, y:298, w:210, h:16, kind:'ledge' },   // high reward ledge
+      { x:2560, y:706, w:40, h:64, kind:'rock' },      // boulder - hammer form smashes it
     ],
     elevators: [
       { x:1120, y:730, w:100, h:16, top:352, bottom:730, period:5 },
@@ -374,8 +403,9 @@ const WORLDS = {
     pickups: [ { x:1420, y:270, id:'shell' } ],            // on the high green-stairs ledge
     holes: [ { x:1916, y:900, w:132, h:130, target:'ocean', arrival:'fromHome' } ],
     tables: [ { x:1710, y:770 } ],
-    doors:  [ { x:96, y:770 }, { x:1490, y:770 }, { x:2360, y:770 } ],
-    chests: [ { x:360, y:770 }, { x:1180, y:770 }, { x:2120, y:770 } ],
+    doors:  [ { x:96, y:770, target:'flatten', arrival:'spawn', label:'Centre' },
+              { x:900, y:770 }, { x:1490, y:770 }, { x:2360, y:770 } ],
+    chests: [ { x:360, y:770 }, { x:1180, y:770 }, { x:2120, y:770 }, { x:2640, y:770 } ], // #3 walled off by the boulder
     gemBoxes: [ { x:1360, y:298 } ],                       // reward for the elevator + green-stairs climb
     npcs: [
       { x:250,  y:770, name:'Wriggo', color:'#e8a0c0', shape:'worm',    quest:'ocean' },
@@ -383,13 +413,14 @@ const WORLDS = {
       { x:1860, y:770, name:'Sella',  color:'#c9a2ff', shape:'seller',  quest:'pearl' },
       { x:2300, y:770, name:'Fenn',   color:'#8fd3a0', shape:'leaf',
         talk:['The layers go down and down.', 'Solve every trouble you find and new ones still sprout.', 'That is just how it is here.'] },
+      { x:2480, y:770, name:'Boulda', color:'#b7a290', shape:'rock',    quest:'hammer' },
     ],
   },
 
   ocean: {
     name: 'Ocean layer', bg: 'ocean', w: 2500, h: 1100,
     gravity: 650, jump: -380, maxFall: 520, floaty: true,
-    arrivals: { fromHome: {x:150, y:-60, vy:240}, spawn: {x:150, y:760} },
+    arrivals: { fromHome: {x:150, y:210, vy:200}, spawn: {x:150, y:760} },
     solids: [
       { x:0,    y:840, w:2158, h:260, kind:'sand' },
       { x:2280, y:840, w:220,  h:260, kind:'sand' },
@@ -398,18 +429,28 @@ const WORLDS = {
       { x:980,  y:700, w:170, h:16, kind:'coral' },
       { x:1250, y:580, w:160, h:16, kind:'coral' },
       { x:1520, y:680, w:170, h:16, kind:'coral' },
+      // the crack: a walled pocket you can only reach as slime
+      { x:1740, y:770, w:130, h:36,  kind:'coral' },   // solid roof
+      { x:1740, y:806, w:130, h:34,  kind:'tight' },   // the crack itself (slime passes)
+      { x:1876, y:640, w:16,  h:200, kind:'coral' },   // far wall of the pocket
+      // Marlo's lookout: a tall pillar you can only top by swimming up
+      { x:2000, y:300, w:90,  h:540, kind:'coral' },
     ],
     elevators: [],
     boxes: [
       { x:900,  y:740, w:32, h:32, gives:'urchin', n:3 },
       { x:1300, y:536, w:32, h:32, gives:'urchin', n:3 },
     ],
-    pickups: [],
+    pickups: [
+      { x:1830, y:820, id:'gem' },        // behind the crack  (special-cased -> G.gems)
+      { x:2045, y:270, id:'spyglass' },   // atop the pillar   (Marlo's quest)
+    ],
     holes: [ { x:2160, y:980, w:130, h:130, target:'home', arrival:'fromOcean' } ],
     tables: [ { x:1640, y:840 } ],
     doors:  [ { x:220, y:840 }, { x:1400, y:840 } ],
-    chests: [ { x:1050, y:700 }, { x:1880, y:840 } ],
+    chests: [ { x:1050, y:700 }, { x:1930, y:840 } ],
     gemBoxes: [],
+    machines: [ { x:1230, y:700, kind:'scanner' } ],   // on the coral ledge - scan an Orb Card here
     npcs: [
       { x:360, y:840, name:'Clawdia', color:'#ff7a59', shape:'crab', action:'minigame',
         talk:['The water keeps churning - the urchins are everywhere.',
@@ -418,6 +459,27 @@ const WORLDS = {
       { x:560, y:840, name:'Bubbo', color:'#7ad0e0', shape:'fish',
         talk:['Some urchins are worth double.', 'The blue one is rare - it hides a Blue Pearl.',
               'Walk over the bucket on the left to bank what you carry.'] },
+      { x:1680, y:840, name:'Nook', color:'#c7b26a', shape:'fish', quest:'slime' },
+      { x:1950, y:840, name:'Marlo', color:'#6fa8d6', shape:'crab', quest:'swim' },
+    ],
+  },
+
+  // Sxco's Sea-Urchin Flattening Centre - reached through the door at Home
+  flatten: {
+    name: 'Flattening Centre', bg: 'indoor', w: 920, h: 640,
+    gravity: 1300, jump: -430, maxFall: 900,
+    arrivals: { spawn: {x:90, y:470}, fromHome: {x:90, y:470} },
+    solids: [
+      { x:0,   y:520, w:920, h:120, kind:'floor' },
+      { x:-16, y:0,   w:16,  h:640, kind:'wall' },
+      { x:920, y:0,   w:16,  h:640, kind:'wall' },
+    ],
+    elevators: [], boxes: [], holes: [], tables: [], chests: [], gemBoxes: [],
+    pickups: [],
+    doors:   [ { x:60, y:520, target:'home', arrival:'fromFlatten', label:'Out' } ],
+    machines:[ { x:760, y:520, kind:'scanner' } ],
+    npcs: [
+      { x:430, y:520, name:'Sxco', color:'#9fb0c8', shape:'sxco', patrol:70, action:'flatten' },
     ],
   },
 
@@ -449,6 +511,33 @@ const QUESTS = {
     active: ["No Blue Pearl yet? The blue urchin is rare - keep catching."],
     turnin: ["A Blue Pearl! Beautiful. Here - shells, as promised."],
     done:   ["Come back if you ever find another pearl."],
+  },
+  hammer: {
+    title: 'Boulda and the boulder', giver: 'Boulda',
+    offer: ["That boulder's blocked my back room for years.",
+            "Here - a HAMMER ORB. Press Q to become the hammer, then walk up and press E to SMASH it.",
+            "Whatever's behind is yours."],
+    active: ["Turn into the hammer (press Q) and smash that boulder. Press E right next to it."],
+    turnin: ["You cracked it! Ha! Take what you found - you earned it."],
+    done:   ["Nice and clear back there now. Thanks, Cokco."],
+  },
+  swim: {
+    title: "Marlo's spyglass", giver: 'Marlo',
+    offer: ["I left my Spyglass up on the lookout pillar and I can't climb it.",
+            "Down here you SWIM: press up to float for 5 seconds, then left/right to glide.",
+            "Swim up the pillar, grab the Spyglass, bring it back?"],
+    active: ["Swim up the tall pillar (press up to float) and fetch my Spyglass."],
+    turnin: ["My Spyglass! You're a natural swimmer. Here, take these shells."],
+    done:   ["I can see the whole layer again. Thanks."],
+  },
+  slime: {
+    title: 'The sealed crack', giver: 'Nook',
+    offer: ["There's treasure behind that crack, but only something SOFT could ooze through.",
+            "Sxco's Flattening Centre can get you a Slime Orb - flatten a Sea Urchin, seal it in an Orb Card, scan it at a scanner.",
+            "Then press Q to become slime and squeeze in."],
+    active: ["Get a Slime Orb (Sxco -> Orb Card -> scan it), then ooze through the crack as slime."],
+    turnin: ["You got in! Keep the gems - I only ever wanted to know what was down there."],
+    done:   ["That crack kept me up at night. Not any more."],
   },
 };
 
@@ -487,14 +576,46 @@ const P = {
   face:1, walk:0, squash:0,
   grounded:false, groundRef:null, headBonk:null, jumping:false,
   jumpBuf:0, coyote:0, airTime:0,
+  form:'normal', floatT:0,     // Cokco-orb form + swim-float timer
 };
+
+// Cokco-orb forms.  slime is short & narrow (fits `tight` gaps); hammer is chunky.
+const FORMS = {
+  normal: { w:26, h:34, speed:190, jump:1   },
+  slime:  { w:20, h:18, speed:150, jump:0.55 },
+  hammer: { w:30, h:34, speed:170, jump:0.9  },
+};
+function setForm(f){
+  if (P.form === f) return true;
+  const prev = P.form, nf = FORMS[f], pf = FORMS[prev];
+  const box = { x: P.x + (pf.w - nf.w) / 2, y: P.y + (pf.h - nf.h), w: nf.w, h: nf.h };
+  P.form = f;                                   // set first, so worldSolids() filters for the new form
+  if (worldSolids().some(s => aabb(box, s))){   // new body would be stuck in a wall -> abort
+    P.form = prev;
+    toast('No room to change here!');
+    return false;
+  }
+  P.x = box.x; P.y = box.y; P.w = nf.w; P.h = nf.h;
+  return true;
+}
+function cycleForm(){
+  const avail = ['normal', ...['slime', 'hammer'].filter(o => G.orbs[o])];
+  if (avail.length < 2){ toast('No Cokco-orbs yet.'); return; }
+  const next = avail[(avail.indexOf(P.form) + 1) % avail.length];
+  if (setForm(next)) toast(next === 'normal' ? 'Back to normal.' : 'Form: ' + next.toUpperCase());
+}
 
 function toast(m){ toasts.push({ m, t: 2.6 }); }
 
 /* ---------- 7. physics ---------- */
 function worldSolids(){
   const s = [];
-  for (const r of world.solids) if (r.kind !== 'green' || G.flags.greenStairs) s.push(r);
+  for (const r of world.solids){
+    if (r.kind === 'green' && !G.flags.greenStairs) continue;
+    if (r.kind === 'tight' && P.form === 'slime') continue;          // slime oozes through
+    if (r.kind === 'rock' && G.rocks[r.rockKey]) continue;           // already smashed
+    s.push(r);
+  }
   for (const e of world.elevators) s.push(e);
   world.boxes.forEach((b, i) => { if (!G.boxes[world.key + ':' + i]) s.push(b); });
   return s;
@@ -533,10 +654,16 @@ function placePlayer(pt){
 function loadWorld(id){
   world = WORLDS[id];
   world.key = id;
-  for (const k of ['solids','elevators','boxes','pickups','holes','npcs','tables','doors','chests','gemBoxes'])
+  for (const k of ['solids','elevators','boxes','pickups','holes','npcs','tables','doors','chests','gemBoxes','machines'])
     world[k] = world[k] || [];
   world.boxes.forEach((b, i) => { b.boxKey = id + ':' + i; b.__box = true; b.gives = b.gives || 'urchin'; b.n = b.n || 3; });
+  let ri = 0; world.solids.forEach(s => { if (s.kind === 'rock') s.rockKey = id + ':r' + (ri++); });
+  world.doors.filter(d => !d.target).forEach((d, i) => { d.num = i + 1; });   // 1..N labels for the chooser
+  world.npcs.forEach(n => { n.baseX = n.x; });          // patrol origin
   for (const e of world.elevators) e.t = 0;
+  // if the current orb form got locked (fresh game / reset), fall back to normal
+  if (P.form !== 'normal' && !G.orbs[P.form]){ P.form = 'normal'; P.w = FORMS.normal.w; P.h = FORMS.normal.h; }
+  P.floatT = 0;
   loose.length = 0;
   makeBubbles(world);
   G.world = id;
@@ -576,32 +703,48 @@ function updatePlay(){
     }
   }
 
+  // moving NPCs pace around their start point
+  for (const n of w.npcs) if (n.patrol) n.x = n.baseX + Math.sin(T * 0.7 + n.baseX) * n.patrol;
+
+  // change Cokco-orb form
+  if (key('KeyQ')) cycleForm();
+
   // carried by the elevator you're standing on
   if (P.groundRef && P.groundRef.dy !== undefined && P.grounded) P.y += P.groundRef.dy;
 
+  const FM = FORMS[P.form];
+
   // walk
   const dir = (held('right') ? 1 : 0) - (held('left') ? 1 : 0);
-  if (dir !== 0){ P.vx += dir * 1600 * dt; P.face = dir; }
-  const drag = P.grounded ? 1800 : 700;
+  const swimming = w.floaty && P.floatT > 0;
+  if (dir !== 0){ P.vx += dir * (swimming ? 1100 : 1600) * dt; P.face = dir; }
+  const drag = P.grounded ? 1800 : swimming ? 260 : 700;
   if (dir === 0 || Math.sign(dir) !== Math.sign(P.vx)){
     const s = Math.sign(P.vx);
     P.vx -= s * drag * dt;
     if (Math.sign(P.vx) !== s) P.vx = 0;
   }
-  P.vx = clamp(P.vx, -190, 190);
+  P.vx = clamp(P.vx, -FM.speed * (swimming ? 1.15 : 1), FM.speed * (swimming ? 1.15 : 1));
   if (Math.abs(P.vx) > 6) P.walk += dt * 12; else P.walk = 0;
 
-  // jump with coyote-time + input buffer, and variable height
-  if (tapped('jump')) P.jumpBuf = CFG.buffer;
-  P.jumpBuf -= dt;
-  P.coyote = P.grounded ? CFG.coyote : P.coyote - dt;
-  if (P.jumpBuf > 0 && P.coyote > 0){
-    P.vy = w.jump; P.jumpBuf = 0; P.coyote = 0; P.grounded = false; P.jumping = true;
+  if (w.floaty){
+    // swimming: press up to float up for 5s, then drift slowly down
+    if (tapped('jump')) P.floatT = 5;
+    P.floatT = Math.max(0, P.floatT - dt);
+    if (P.floatT > 0) P.vy += (-135 - P.vy) * Math.min(1, dt * 5);   // buoyant rise
+    else { P.vy += w.gravity * dt * 0.55; if (P.vy > 300) P.vy = 300; }
+  } else {
+    // jump with coyote-time + input buffer, and variable height
+    if (tapped('jump')) P.jumpBuf = CFG.buffer;
+    P.jumpBuf -= dt;
+    P.coyote = P.grounded ? CFG.coyote : P.coyote - dt;
+    if (P.jumpBuf > 0 && P.coyote > 0){
+      P.vy = w.jump * FM.jump; P.jumpBuf = 0; P.coyote = 0; P.grounded = false; P.jumping = true;
+    }
+    if (P.jumping && !held('jump') && P.vy < 0){ P.vy *= 0.5; P.jumping = false; }
+    P.vy += w.gravity * dt;
+    P.vy = Math.min(P.vy, w.maxFall);
   }
-  if (P.jumping && !held('jump') && P.vy < 0){ P.vy *= 0.5; P.jumping = false; }
-
-  P.vy += w.gravity * dt;
-  P.vy = Math.min(P.vy, w.maxFall);
 
   const solids = worldSolids();
   moveX(solids);
@@ -631,7 +774,7 @@ function updatePlay(){
         }
       }
     }
-    if (aabb(P, { x:l.x - 10, y:l.y - 16, w:20, h:22 })){
+    if (!l.debris && aabb(P, { x:l.x - 10, y:l.y - 16, w:20, h:22 })){
       const got = invAdd(l.id, 1);
       if (got) toast('+1 ' + ITEMS[l.id].name);
       loose.splice(i, 1); continue;
@@ -639,14 +782,15 @@ function updatePlay(){
     if (l.life <= 0 || l.y > w.h + 100) loose.splice(i, 1);
   }
 
-  // floor pickups
+  // floor pickups  (coin/gem go to their counters, everything else to the bag)
   w.pickups.forEach((p, i) => {
     const k = 'pk:' + w.key + ':' + i;
     if (G.picked[k]) return;
     if (aabb(P, { x:p.x - 12, y:p.y - 12, w:24, h:24 })){
       G.picked[k] = true;
-      const got = invAdd(p.id, 1);
-      if (got) toast('Found: ' + ITEMS[p.id].name);
+      if (p.id === 'gem'){ G.gems += (p.n || 2); toast('+' + (p.n || 2) + ' 💎'); }
+      else if (p.id === 'coin'){ G.coins += (p.n || 5); toast('+' + (p.n || 5) + ' 🪙'); }
+      else { const got = invAdd(p.id, 1); if (got) toast('Found: ' + ITEMS[p.id].name); }
       persist();
     }
   });
@@ -654,10 +798,16 @@ function updatePlay(){
   // what's in reach?
   const cxp = P.x + P.w/2, fyp = P.y + P.h;
   const near = (ox, oy, dx, dy) => Math.abs(cxp - ox) < dx && Math.abs(fyp - oy) < dy;
-  let npcNear = null, boxNear = null, holeNear = null, tableNear = null, doorNear = null, chestNear = null;
-  for (const n of w.npcs) if (near(n.x, n.y, 46, 74)) npcNear = n;
+  let npcNear = null, boxNear = null, holeNear = null, tableNear = null, doorNear = null, chestNear = null,
+      machineNear = null, rockNear = null;
+  for (const n of w.npcs) if (near(n.x, n.y, n.patrol ? 72 : 46, 74)) npcNear = n;
   for (const t of w.tables) if (near(t.x, t.y, 44, 76)) tableNear = t;
   for (const d of w.doors) if (near(d.x, d.y, 34, 76)) doorNear = d;
+  for (const m of w.machines) if (near(m.x, m.y, 40, 76)) machineNear = m;
+  for (const s of w.solids){
+    if (s.kind === 'rock' && !G.rocks[s.rockKey] &&
+        Math.abs(cxp - (s.x + s.w/2)) < s.w/2 + 26 && Math.abs((P.y + P.h/2) - (s.y + s.h/2)) < s.h/2 + 24) rockNear = s;
+  }
   w.chests.forEach((c, i) => { const kk = w.key + ':c' + i; if (!G.chests[kk] && near(c.x, c.y, 38, 64)) chestNear = { c, kk, gem: false }; });
   w.gemBoxes.forEach((c, i) => { const kk = w.key + ':g' + i; if (!G.chests[kk] && near(c.x, c.y, 38, 64)) chestNear = { c, kk, gem: true }; });
   w.boxes.forEach((b, i) => {
@@ -669,15 +819,19 @@ function updatePlay(){
   }
 
   hintText = npcNear ? 'E — talk to ' + npcNear.name
+           : rockNear ? (P.form === 'hammer' ? 'E — SMASH the boulder!' : 'A tough boulder. Only a hammer could break it.')
+           : machineNear ? 'E — scan an Orb Card'
            : tableNear ? 'E — use the crafting table'
-           : doorNear ? 'E — go through the door'
+           : doorNear ? (doorNear.target ? 'E — enter the ' + (doorNear.label || 'door') : 'E — go through the door')
            : chestNear ? 'E — open the ' + (chestNear.gem ? 'gem box' : 'chest')
            : boxNear ? 'E — open the box'
            : holeNear ? '↓ walk into the hole to drop to ' + WORLDS[holeNear.target].name
-           : 'Esc menu · I bag · J problems';
+           : (G.orbs.slime || G.orbs.hammer) ? 'Q change form · Esc menu · I bag' : 'Esc menu · I bag · J problems';
 
   if (key('KeyE', 'Enter')){
     if (npcNear){ talkTo(npcNear); return; }
+    if (rockNear && P.form === 'hammer'){ smashRock(rockNear); return; }
+    if (machineNear){ scanCard(machineNear); return; }
     if (tableNear){ openPanel('craft'); return; }
     if (doorNear){ openDoor(doorNear); return; }
     if (chestNear){ openChest(chestNear); return; }
@@ -721,9 +875,10 @@ function openChest(o){
   persist();
 }
 
-// doors move Cokco between doors in the SAME world
+// doors move Cokco between doors in the SAME world (or into another world if `target`)
 function openDoor(d){
-  const others = world.doors.filter(x => x !== d);
+  if (d.target){ travel(d.target, d.arrival || 'spawn'); return; }
+  const others = world.doors.filter(x => x !== d && !x.target);
   if (!others.length){ toast("This door won't budge."); return; }
   if (others.length === 1){ doorWarp(others[0]); return; }
   doorChoices = others;
@@ -734,13 +889,49 @@ function doorWarp(d){
   fx = 1;
 }
 
+function smashRock(s){
+  if (G.rocks[s.rockKey]) return;
+  G.rocks[s.rockKey] = true; persist();
+  for (let i = 0; i < 9; i++)
+    loose.push({ x:s.x + s.w/2, y:s.y + s.h/2, vx:rand(-170, 170), vy:rand(-240, -50), debris:true, life:0.9, grounded:false });
+  toast('CRACK! The boulder shatters.');
+}
+
+function scanCard(m){
+  if (invCount('orb-card') < 1){ toast('The scanner needs a loaded Orb Card.'); return; }
+  invRemove('orb-card', 1);
+  if (!G.orbs.slime){ G.orbs.slime = true; toast('SLIME ORB unlocked!  Press Q to change form.'); }
+  else if (!G.orbs.hammer){ G.orbs.hammer = true; toast('HAMMER ORB unlocked!  Press Q to change form.'); }
+  else toast('The scanner hums - you already have every orb it knows.');
+  persist();
+}
+
+function flattenUrchin(){
+  if (invCount('urchin') < 1){ toast('Bring Sxco a Sea Urchin first.'); return; }
+  invRemove('urchin', 1); invAdd('flat-urchin', 1); persist();
+  toast('Sxco presses it flat.  +1 Flat Urchin');
+}
+
+/* per-quest hooks: onStart runs when accepted, ready() gates the turn-in, reward() pays out */
+const QUEST_HOOKS = {
+  hammer: { onStart: () => { G.orbs.hammer = true; },
+            ready: () => !!G.rocks['home:r0'], reward: () => { G.coins += 12; } },
+  swim:   { ready: () => invCount('spyglass') >= 1,
+            reward: () => { invRemove('spyglass', 1); invAdd('shell', 5); } },
+  slime:  { ready: () => !!G.picked['pk:ocean:0'],
+            reward: () => { invAdd('shell', 4); } },
+};
+
 /* ---------- 9. dialogue ---------- */
 function talkTo(n){
   if (n.quest){
-    const q = QUESTS[n.quest], st = G.quests[n.quest];
+    const q = QUESTS[n.quest], st = G.quests[n.quest], hk = QUEST_HOOKS[n.quest] || {};
     if (st === 'inactive'){
       dialogue = { who:n.name, lines:q.offer.slice(), i:0, end:() => {
-        G.quests[n.quest] = 'active'; persist(); toast('New problem: ' + q.title);
+        G.quests[n.quest] = 'active';
+        if (hk.onStart) hk.onStart();
+        persist(); toast('New problem: ' + q.title);
+        if (n.quest === 'hammer') toast('HAMMER ORB unlocked!  Press Q to change form.');
       }};
     } else if (st === 'active' && n.quest === 'craft' && invCount('urchin') >= 3){
       dialogue = { who:n.name, lines:q.turnin.slice(), i:0, end:() => {
@@ -758,11 +949,28 @@ function talkTo(n){
         if (n.quest === 'ocean') invAdd('shell', 3);
         persist(); toast('Problem solved: ' + q.title); checkAllSolved();
       }};
+    } else if (st === 'active' && hk.ready && hk.ready()){
+      dialogue = { who:n.name, lines:q.turnin.slice(), i:0, end:() => {
+        G.quests[n.quest] = 'done';
+        if (hk.reward) hk.reward();
+        persist(); toast('Problem solved: ' + q.title); checkAllSolved();
+      }};
     } else if (st === 'done'){
       dialogue = { who:n.name, lines:q.done.slice(), i:0, end:null };
     } else {
       dialogue = { who:n.name, lines:q.active.slice(), i:0, end:null };
     }
+  } else if (n.action === 'flatten'){
+    const haveCard = invCount('orb-card') >= 1, haveFlat = invCount('flat-urchin') >= 1, haveUrchin = invCount('urchin') >= 1;
+    const lines = haveCard
+      ? ["That card's loaded. Take it to an Orb Scanner - there's one in the corner here, another down in the Ocean layer."]
+      : haveFlat
+        ? ["You've a Flat Urchin already. Seal it into an Orb Card at a crafting table (needs 2 Cokco-coins for the card)."]
+        : haveUrchin
+          ? ["Sxco's the name, flattening's my game.", "One Sea Urchin - in the press it goes...", "*KA-CHUNK!*  There: one Flat Urchin. Card it up, then scan the card."]
+          : ["Sxco's the name, flattening's my game.", "Bring me a Sea Urchin and my machine will press it flat."];
+    dialogue = { who:n.name, lines, i:0,
+      end: (!haveCard && !haveFlat && haveUrchin) ? flattenUrchin : null };
   } else {
     dialogue = { who:n.name, lines:(n.talk || ['...']).slice(), i:0,
       end: n.action === 'minigame' ? () => startMinigame() : null };
@@ -882,7 +1090,52 @@ function makeBubbles(w){
 // Cokco, drawn to match Avery's picture: one round body, the top ~40% filled a
 // flat grey (not hair) with a divider line, two big oval eyes, straight stick
 // arms angled up-and-out, and two short splayed legs.
-function drawCokco(x, y, faceEyes, walk, squash){
+function drawCokco(x, y, faceEyes, walk, squash, form){
+  form = form || 'normal';
+  if (form === 'slime'){
+    const w = FORMS.slime.w, h = FORMS.slime.h, cx = x + w/2, cy = y + h/2;
+    const wob = Math.sin(T * 7) * 1.4;
+    ctx.save();
+    ctx.fillStyle = 'rgba(96,204,120,.9)'; ctx.strokeStyle = '#2f8f47'; ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(x, y + h);
+    ctx.quadraticCurveTo(x - 3, cy, cx - 3, y + 2 + wob);
+    ctx.quadraticCurveTo(cx, y - 3 - wob, cx + 3, y + 2 + wob);
+    ctx.quadraticCurveTo(x + w + 3, cy, x + w, y + h);
+    ctx.closePath(); ctx.fill(); ctx.stroke();
+    ctx.fillStyle = 'rgba(255,255,255,.4)'; ctx.beginPath(); ctx.ellipse(cx - 3, cy - 2, 3, 2, -0.5, 0, 7); ctx.fill();
+    ctx.fillStyle = '#20303a';
+    const ex = faceEyes * 1.6;
+    ctx.beginPath(); ctx.arc(cx - 4 + ex, cy, 1.9, 0, 7); ctx.arc(cx + 4 + ex, cy, 1.9, 0, 7); ctx.fill();
+    ctx.restore();
+    return;
+  }
+  if (form === 'hammer'){
+    const w = FORMS.hammer.w, h = FORMS.hammer.h, cx = x + w/2, r = 13, by = y + r + 4;
+    ctx.save(); ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+    // stony legs
+    ctx.strokeStyle = '#4a4640'; ctx.lineWidth = 4;
+    ctx.beginPath();
+    ctx.moveTo(cx - 6, by + r * 0.8); ctx.lineTo(cx - 8, y + h);
+    ctx.moveTo(cx + 6, by + r * 0.8); ctx.lineTo(cx + 8, y + h);
+    ctx.stroke();
+    // the mallet, over the right shoulder
+    ctx.strokeStyle = '#7a5a34'; ctx.lineWidth = 4;
+    ctx.beginPath(); ctx.moveTo(cx + 4, by + 2); ctx.lineTo(cx + 20, by - 20); ctx.stroke();
+    ctx.fillStyle = '#8a8f98'; ctx.strokeStyle = '#5b6069'; ctx.lineWidth = 2;
+    ctx.save(); ctx.translate(cx + 22, by - 23); ctx.rotate(-0.7);
+    ctx.fillRect(-13, -9, 26, 18); ctx.strokeRect(-13, -9, 26, 18); ctx.restore();
+    // stone body
+    ctx.fillStyle = '#9a938a'; ctx.beginPath(); ctx.arc(cx, by, r, 0, 7); ctx.fill();
+    ctx.strokeStyle = '#20242b'; ctx.lineWidth = 2.4; ctx.stroke();
+    ctx.fillStyle = '#6f6a63'; ctx.beginPath(); ctx.arc(cx, by, r, Math.PI * 1.05, Math.PI * 1.95); ctx.arc(cx, by - r * 0.18, r, 0, Math.PI, true); ctx.fill();
+    ctx.fillStyle = '#242222';
+    const ex = faceEyes * 2;
+    ctx.beginPath(); ctx.ellipse(cx - 5.4 + ex, by + 1, 2.9, 3.4, 0, 0, 7); ctx.fill();
+    ctx.beginPath(); ctx.ellipse(cx + 5.4 + ex, by + 1, 2.9, 3.4, 0, 0, 7); ctx.fill();
+    ctx.restore();
+    return;
+  }
   const w = CFG.cokco.w, h = CFG.cokco.h, cx = x + w/2, r = w/2, by = y + r + 2;
   const sw = Math.sin(walk) * 3, aw = Math.sin(walk) * 2;
   ctx.save();
@@ -929,6 +1182,8 @@ function marker(n){
   const s = G.quests[n.quest];
   if (s === 'inactive' || s === 'ready') return '!';
   if (s === 'active'){
+    const hk = QUEST_HOOKS[n.quest];
+    if (hk && hk.ready && hk.ready()) return '!';
     if (n.quest === 'craft' && invCount('urchin') >= 3) return '!';
     if (n.quest === 'pearl' && invCount('blue-pearl') >= 1) return '!';
     if (n.quest === 'ocean' && G.flags.oceanCalm) return '!';
@@ -964,6 +1219,20 @@ function drawCreature(n){
     ctx.fillStyle = n.color; ctx.beginPath(); ctx.ellipse(x, y - 16 + Math.sin(T * 3) * 3, 13, 9, 0, 0, 7); ctx.fill();
     ctx.beginPath(); ctx.moveTo(x + 11, y - 16); ctx.lineTo(x + 20, y - 22); ctx.lineTo(x + 20, y - 10); ctx.fill();
     ctx.fillStyle = '#20242b'; ctx.beginPath(); ctx.arc(x - 5, y - 18, 1.8, 0, 7); ctx.fill();
+  } else if (n.shape === 'rock'){
+    ctx.fillStyle = n.color; ctx.strokeStyle = '#7a6a58'; ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(x - 15, y); ctx.lineTo(x - 17, y - 16); ctx.lineTo(x - 6, y - 26);
+    ctx.lineTo(x + 9, y - 24); ctx.lineTo(x + 17, y - 12); ctx.lineTo(x + 13, y);
+    ctx.closePath(); ctx.fill(); ctx.stroke();
+    ctx.fillStyle = '#20242b'; ctx.beginPath(); ctx.arc(x - 4, y - 15, 1.9, 0, 7); ctx.arc(x + 5, y - 15, 1.9, 0, 7); ctx.fill();
+  } else if (n.shape === 'sxco'){
+    // Cokco-ish but with a press-machine helmet + a lever arm
+    ctx.fillStyle = n.color; ctx.beginPath(); ctx.arc(x, y - 17, 13, 0, 7); ctx.fill();
+    ctx.fillStyle = '#5b6472'; ctx.fillRect(x - 13, y - 30, 26, 7);
+    ctx.strokeStyle = '#8a8f98'; ctx.lineWidth = 3; ctx.lineCap = 'round';
+    ctx.beginPath(); ctx.moveTo(x + 10, y - 20); ctx.lineTo(x + 19, y - 28 + Math.sin(T * 3) * 4); ctx.stroke();
+    ctx.fillStyle = '#20242b'; ctx.beginPath(); ctx.arc(x - 4, y - 18, 1.9, 0, 7); ctx.arc(x + 4, y - 18, 1.9, 0, 7); ctx.fill();
   } else { // leaf
     ctx.fillStyle = n.color; ctx.beginPath(); ctx.arc(x, y - 16, 12, 0, 7); ctx.fill();
     ctx.fillStyle = '#3fae4a'; ctx.beginPath();
@@ -1006,6 +1275,14 @@ function drawBG(){
       const cx0 = (i * 460 + T * 10 - cam.x * 0.5) % (VW + 500) - 250, cy0 = 70 + i * 26;
       ctx.beginPath(); ctx.arc(cx0, cy0, 22, 0, 7); ctx.arc(cx0 + 24, cy0 + 6, 18, 0, 7); ctx.arc(cx0 - 22, cy0 + 6, 16, 0, 7); ctx.fill();
     }
+  } else if (world.bg === 'indoor'){
+    ctx.fillStyle = '#2b2f3a'; ctx.fillRect(0, 0, VW, VH);
+    ctx.fillStyle = 'rgba(255,255,255,.04)';
+    for (let gx = -((cam.x) % 60); gx < VW; gx += 60) ctx.fillRect(gx, 0, 2, VH);
+    for (let gy = -((cam.y) % 60); gy < VH; gy += 60) ctx.fillRect(0, gy, VW, 2);
+    ctx.fillStyle = 'rgba(255,240,200,.10)';
+    ctx.beginPath(); ctx.moveTo(VW * 0.5 - 120, 0); ctx.lineTo(VW * 0.5 + 120, 0);
+    ctx.lineTo(VW * 0.5 + 40, VH); ctx.lineTo(VW * 0.5 - 40, VH); ctx.fill();
   } else {
     const g = ctx.createLinearGradient(0, 0, 0, VH);
     g.addColorStop(0, '#0c3a4e'); g.addColorStop(0.55, '#12617a'); g.addColorStop(1, '#1a86a0');
@@ -1065,14 +1342,28 @@ function drawTable(t){
   label(ctx, x, y - 41, 'craft', '#ffe6a8');
 }
 function drawDoor(d, i){
-  const x = d.x, y = d.y, w = 24, h = 44;
-  ctx.fillStyle = '#4a3016'; ctx.fillRect(x - w/2 - 3, y - h - 4, w + 6, h + 4);
-  ctx.fillStyle = '#8a5f38'; ctx.fillRect(x - w/2, y - h, w, h);
+  const x = d.x, y = d.y, w = d.target ? 30 : 24, h = d.target ? 50 : 44;
+  ctx.fillStyle = '#4a3016'; ctx.fillRect(x - w/2 - 3, y - h - 5, w + 6, h + 5);
+  ctx.fillStyle = d.target ? '#7a5230' : '#8a5f38'; ctx.fillRect(x - w/2, y - h, w, h);
+  if (d.target){
+    ctx.beginPath(); ctx.moveTo(x - w/2 - 3, y - h); ctx.quadraticCurveTo(x, y - h - 16, x + w/2 + 3, y - h);
+    ctx.lineTo(x + w/2 + 3, y - h + 4); ctx.lineTo(x - w/2 - 3, y - h + 4); ctx.fill();
+  }
   ctx.strokeStyle = 'rgba(0,0,0,.28)'; ctx.lineWidth = 1;
-  ctx.strokeRect(x - w/2 + 3, y - h + 5, w - 6, h/2 - 8);
+  ctx.strokeRect(x - w/2 + 3, y - h + 6, w - 6, h/2 - 9);
   ctx.strokeRect(x - w/2 + 3, y - h/2 + 2, w - 6, h/2 - 8);
   ctx.fillStyle = '#ffd678'; ctx.beginPath(); ctx.arc(x + w/2 - 5, y - h/2, 2.2, 0, 7); ctx.fill();
-  if (world.doors.length >= 2) label(ctx, x, y - h - 10, String(i + 1), '#ffd678');
+  if (d.target) label(ctx, x, y - h - 14, d.label || 'in', '#ffe6a8');
+  else if (world.doors.filter(z => !z.target).length >= 3) label(ctx, x, y - h - 10, String(d.num), '#ffd678');
+}
+function drawMachine(m){
+  const x = m.x, y = m.y;
+  ctx.fillStyle = '#3a4150'; ctx.fillRect(x - 15, y - 40, 30, 40);
+  ctx.strokeStyle = '#20242b'; ctx.lineWidth = 2; ctx.strokeRect(x - 15, y - 40, 30, 40);
+  ctx.fillStyle = (T % 1 < 0.5) ? '#7ef0c4' : '#39c79a';        // blinking screen
+  ctx.fillRect(x - 10, y - 35, 20, 12);
+  ctx.fillStyle = '#20242b'; ctx.fillRect(x - 9, y - 18, 18, 3); // card slot
+  label(ctx, x, y - 48, 'scan', '#7ef0c4');
 }
 function drawChest(c, kk, gem){
   const x = c.x, y = c.y, w = 26, h = 17, open = !!G.chests[kk];
@@ -1114,6 +1405,34 @@ function drawSolid(s){
   if (s.kind === 'coral'){
     ctx.fillStyle = '#ff8f7a'; ctx.fillRect(s.x, s.y, s.w, s.h);
     ctx.fillStyle = '#ffd0a0'; ctx.fillRect(s.x, s.y, s.w, 5);
+    return;
+  }
+  if (s.kind === 'rock'){
+    ctx.fillStyle = '#8f8578'; ctx.fillRect(s.x, s.y, s.w, s.h);
+    ctx.strokeStyle = '#6b6256'; ctx.lineWidth = 2; ctx.strokeRect(s.x + 1, s.y + 1, s.w - 2, s.h - 2);
+    ctx.strokeStyle = 'rgba(40,36,30,.5)'; ctx.beginPath();
+    ctx.moveTo(s.x + s.w * 0.3, s.y); ctx.lineTo(s.x + s.w * 0.55, s.y + s.h * 0.5); ctx.lineTo(s.x + s.w * 0.35, s.y + s.h);
+    ctx.moveTo(s.x + s.w * 0.7, s.y + s.h * 0.15); ctx.lineTo(s.x + s.w, s.y + s.h * 0.55);
+    ctx.stroke();
+    return;
+  }
+  if (s.kind === 'tight'){
+    ctx.fillStyle = '#5a5550'; ctx.fillRect(s.x, s.y, s.w, s.h);
+    ctx.strokeStyle = '#2c2926'; ctx.lineWidth = 3; ctx.lineCap = 'round'; ctx.beginPath();
+    ctx.moveTo(s.x + s.w * 0.5, s.y);
+    ctx.lineTo(s.x + s.w * 0.4, s.y + s.h * 0.35);
+    ctx.lineTo(s.x + s.w * 0.6, s.y + s.h * 0.7);
+    ctx.lineTo(s.x + s.w * 0.45, s.y + s.h);
+    ctx.stroke();
+    label(ctx, s.x + s.w / 2, s.y - 6, 'crack', '#cfc8bd');
+    return;
+  }
+  if (s.kind === 'floor'){
+    ctx.fillStyle = '#4a4650'; ctx.fillRect(s.x, s.y, s.w, s.h);
+    ctx.fillStyle = '#565360'; ctx.fillRect(s.x, s.y, s.w, 6);
+    ctx.strokeStyle = 'rgba(0,0,0,.2)'; ctx.lineWidth = 1; ctx.beginPath();
+    for (let tx = s.x + 40; tx < s.x + s.w; tx += 40){ ctx.moveTo(tx, s.y); ctx.lineTo(tx, s.y + 24); }
+    ctx.stroke();
     return;
   }
   // 2D-Minecraft-ish blocks: flat base + a checker of darker cells + grid lines,
@@ -1183,9 +1502,21 @@ function drawItem(id, x, y){
   const art = ITEMS[id] && ITEMS[id].art;
   if (art === 'spikeball'){ drawSpikeBall(ctx, x, yy, 6, '#8a4fce', T); return; }
   if (art === 'block'){ drawUrchinBlock(ctx, x - 9, yy - 9, 18); return; }
+  if (art === 'flat'){
+    ctx.fillStyle = '#8a4fce'; ctx.beginPath(); ctx.ellipse(x, yy, 9, 3.5, 0, 0, 7); ctx.fill();
+    ctx.strokeStyle = '#8a4fce'; ctx.lineWidth = 1.6;
+    for (let a = 0; a < 8; a++){ const an = a / 8 * 6.2832; ctx.beginPath(); ctx.moveTo(x, yy); ctx.lineTo(x + Math.cos(an) * 13, yy + Math.sin(an) * 5); ctx.stroke(); }
+    return;
+  }
+  if (id === 'gem'){ ctx.fillStyle = '#bff6ff'; ctx.beginPath(); ctx.moveTo(x, yy - 7); ctx.lineTo(x + 5, yy - 1); ctx.lineTo(x, yy + 7); ctx.lineTo(x - 5, yy - 1); ctx.fill(); return; }
+  if (id === 'coin'){ ctx.fillStyle = '#ffd678'; ctx.beginPath(); ctx.arc(x, yy, 6, 0, 7); ctx.fill(); return; }
   ctx.font = '20px system-ui'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
   ctx.fillText(ITEMS[id] ? ITEMS[id].icon : '?', x, yy);
   ctx.textBaseline = 'alphabetic';
+}
+function drawDebris(l){
+  ctx.fillStyle = '#8f8578';
+  ctx.fillRect(l.x - 3, l.y - 3, 6, 6);
 }
 function renderWorld(){
   ctx.clearRect(0, 0, VW, VH);
@@ -1221,15 +1552,16 @@ function renderWorld(){
   world.chests.forEach((c, i) => drawChest(c, world.key + ':c' + i, false));
   world.gemBoxes.forEach((c, i) => drawChest(c, world.key + ':g' + i, true));
   world.tables.forEach(drawTable);
+  world.machines.forEach(drawMachine);
   world.doors.forEach(drawDoor);
   world.boxes.forEach(drawBox);
 
   world.pickups.forEach((p, i) => { if (!G.picked['pk:' + world.key + ':' + i]) drawItem(p.id, p.x, p.y); });
-  for (const l of loose) drawItem(l.id, l.x, l.y - 8);
+  for (const l of loose) l.debris ? drawDebris(l) : drawItem(l.id, l.x, l.y - 8);
 
   for (const n of world.npcs) drawCreature(n);
 
-  drawCokco(P.x, P.y, P.face, P.walk, P.squash);
+  drawCokco(P.x, P.y, P.face, P.walk, P.squash, P.form);
 
   ctx.restore();
 
@@ -1334,7 +1666,7 @@ const PANEL = {
   },
   door(){
     const list = doorChoices.map((d, i) =>
-      '<button class="btn" data-act="door:' + i + '">Door ' + (world.doors.indexOf(d) + 1) + '</button>').join(' ');
+      '<button class="btn" data-act="door:' + i + '">Door ' + d.num + '</button>').join(' ');
     return '<h2>Which door?</h2><p style="opacity:.75;font-size:13px">Tap one, or press its number key. Numbers match the signs above each door.</p>' +
       '<div>' + list + '</div><div style="margin-top:10px"></div>' +
       '<button class="btn alt" data-act="resume">Never mind</button>';
@@ -1378,14 +1710,21 @@ function objectiveFor(id){
     : "Drop into the Ocean layer and beat Clawdia's catching challenge.";
   if (id === 'craft') return 'Bring Crafto 3 Sea Urchins (you have ' + invCount('urchin') + ').';
   if (id === 'pearl') return 'Catch the blue urchin, bring Sella a Blue Pearl (you have ' + invCount('blue-pearl') + ').';
+  if (id === 'hammer') return G.rocks['home:r0']
+    ? 'Tell Boulda you smashed the boulder.'
+    : 'Press Q for hammer form, then press E by the boulder to smash it.';
+  if (id === 'swim') return invCount('spyglass') >= 1
+    ? "Take Marlo's Spyglass back to him."
+    : 'Swim up the tall pillar (press up to float) and grab the Spyglass.';
+  if (id === 'slime') return G.picked['pk:ocean:0']
+    ? 'Tell Nook what was behind the crack.'
+    : 'Get a Slime Orb (Sxco → Orb Card → scan it), then ooze through the crack.';
   return '';
 }
 function primaryObjective(){
   const q = G.quests;
-  if (q.ocean === 'active') return objectiveFor('ocean');
-  if (q.ocean === 'ready') return 'Tell Wriggo the water is calm.';
-  if (q.craft === 'active') return objectiveFor('craft');
-  if (q.pearl === 'active') return objectiveFor('pearl');
+  for (const id of ['ocean', 'hammer', 'swim', 'slime', 'craft', 'pearl'])
+    if (q[id] === 'active' || q[id] === 'ready') return objectiveFor(id) || 'Talk to the creatures.';
   if (Object.values(q).every(s => s === 'done')) return 'Explore — new problems will appear.';
   return 'Talk to the creatures. They each have a problem.';
 }
@@ -1404,6 +1743,11 @@ function paintPanelArt(){
     const id = cv.dataset.art, m = cv.width / 2;
     if (ITEMS[id].art === 'spikeball') drawSpikeBall(g, m, m, cv.width * 0.26, '#8a4fce', 0.5);
     else if (ITEMS[id].art === 'block') drawUrchinBlock(g, 4, 4, cv.width - 8);
+    else if (ITEMS[id].art === 'flat'){
+      g.fillStyle = '#8a4fce'; g.beginPath(); g.ellipse(m, m, m * 0.7, m * 0.28, 0, 0, 7); g.fill();
+      g.strokeStyle = '#8a4fce'; g.lineWidth = 2;
+      for (let a = 0; a < 8; a++){ const an = a / 8 * 6.2832; g.beginPath(); g.moveTo(m, m); g.lineTo(m + Math.cos(an) * m * 0.9, m + Math.sin(an) * m * 0.4); g.stroke(); }
+    }
   });
 }
 function wirePanel(){
@@ -1444,10 +1788,8 @@ function update(){
   else if (m0 === 'panel'){
     if (key('Escape') || (panelKind === 'bag' && key('KeyI')) || (panelKind === 'problems' && key('KeyJ'))) closePanel();
     else if (panelKind === 'door'){
-      for (const d of doorChoices){
-        const n = world.doors.indexOf(d) + 1;
-        if (n <= 9 && key('Digit' + n, 'Numpad' + n)){ closePanel(); doorWarp(d); break; }
-      }
+      for (const d of doorChoices)
+        if (d.num <= 9 && key('Digit' + d.num, 'Numpad' + d.num)){ closePanel(); doorWarp(d); break; }
     }
   }
   else if (m0 === 'minigame') updateMinigame();
@@ -1474,7 +1816,9 @@ function syncDOM(){
   if (showHud && world){
     document.getElementById('worldName').textContent = world.name;
     document.getElementById('obj').textContent = primaryObjective();
-    document.getElementById('urch').innerHTML =
+    const formTag = P.form === 'slime' ? '<span>🟢 slime</span>'
+                  : P.form === 'hammer' ? '<span>🔨 hammer</span>' : '';
+    document.getElementById('urch').innerHTML = formTag +
       '<span>🦔 ' + invCount('urchin') + '</span><span>🐚 ' + invCount('shell') +
       '</span><span>🪙 ' + G.coins + '</span><span>💎 ' + G.gems + '</span>';
   }

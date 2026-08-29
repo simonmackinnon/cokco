@@ -15,14 +15,16 @@ That's the whole game. Progress saves automatically in that browser.
 | Do this | Key |
 | --- | --- |
 | Walk | `←` `→` or `A` `D` |
-| Jump | `↑` / `W` / `Space` (hold longer = jump higher) |
-| Talk to a creature / open a box | `E` |
+| Jump / swim up (in water) | `↑` / `W` / `Space` |
+| Talk / open / smash / scan | `E` |
+| Change Cokco-orb form | `Q` |
 | Bag (inventory) | `I` |
 | Problems (quest log) | `J` |
 | Menu (Go Home, Map, Reset) | `Esc` |
 
 On a phone/tablet, on-screen buttons appear automatically (move ◀ ▶, jump ▲,
-talk **E**, and 🎒 📋 ☰). Add `?touch=1` to the URL to force them on a desktop.
+talk **E**, 🎒 📋 ☰, and a form-change button once you have an orb). Add
+`?touch=1` to the URL to force them on a desktop.
 
 ## What's in this first version
 
@@ -37,7 +39,15 @@ talk **E**, and 🎒 📋 ☰). Add `?touch=1` to the URL to force them on a des
 - **Crafting tables** (fixed spots for now) — press `E` to craft. Recipes:
   **Sea Urchin Block** (5 sea urchins) and **Lantern** (4 shells + 1 gem).
 - **Doors** — press `E` to jump between the doors in the same world; if there's a
-  choice, pick by number key or tap. Numbers match the signs above each door.
+  choice, pick by number key or tap. A door with a name-sign leads into another
+  place (Sxco's Flattening Centre is through the door by your house).
+- **Cokco-orbs** — transform with `Q`. **Hammer** form smashes tough boulders
+  (`E` next to one); **Slime** form is small and oozes through cracks. Unlock the
+  Hammer Orb from Boulda; make a Slime Orb at the Flattening Centre — Sxco flattens
+  a Sea Urchin, you craft it into an **Orb Card**, then scan the card at an **Orb
+  Scanner**. More orbs later.
+- **Swimming** (Ocean layer) — press up to float up for ~5 seconds, then left/right
+  to glide. Marlo needs his Spyglass off a pillar you can only reach by swimming.
 - **Chests** hold Cokco-coins (rarely a gem). **Gem boxes** are rare and always
   hold gems.
 - **Day & night** follow your device's real clock — full day ~07–19, full night
