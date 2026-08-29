@@ -11,13 +11,14 @@ const code = html.match(/<script>([\s\S]*?)<\/script>/)[1] + `
 ;globalThis.__game = {
   get mode(){return mode}, get world(){return world}, get P(){return P},
   get G(){return G}, get MG(){return MG}, get trans(){return trans},
-  invAdd, invCount, invRemove, travel, startMinigame,
+  get panelKind(){return panelKind}, get doorChoices(){return doorChoices},
+  invAdd, invCount, invRemove, travel, startMinigame, craftRecipe, dayFactor,
 };`;
 
 // ---- fake canvas 2d context ----
 const ctxProxy = new Proxy({}, {
   get(_, p) {
-    if (p === 'createLinearGradient') return () => ({ addColorStop() {} });
+    if (p === 'createLinearGradient' || p === 'createRadialGradient') return () => ({ addColorStop() {} });
     if (p === 'measureText') return () => ({ width: 12 });
     if (p === 'canvas') return canvas;
     return () => {};
@@ -186,6 +187,46 @@ try {
   for (let i = 0; i < 20; i++) step();
   check('reward shell collected from the high ledge', g().invCount('shell') === shellBefore + 1);
   g().P.x = 120; g().P.y = 690; // back near spawn
+
+  // --- day / night ---
+  const df = g().dayFactor();
+  check('dayFactor() is a 0..1 number', typeof df === 'number' && df >= 0 && df <= 1);
+
+  // --- crafting a Sea Urchin Block from collected urchins ---
+  g().invAdd('urchin', 5);
+  const ub = g().invCount('urchin');
+  const okc = g().craftRecipe('urchin-block');
+  check('craftRecipe(urchin-block) succeeds', okc === true);
+  check('got a Sea Urchin Block', g().invCount('urchin-block') === 1);
+  check('5 urchins consumed by the recipe', g().invCount('urchin') === ub - 5);
+
+  // --- crafting table opens the craft panel ---
+  const tbl = g().world.tables[0];
+  g().P.x = tbl.x - g().P.w / 2; g().P.y = tbl.y - g().P.h;
+  step();
+  press('KeyE'); step();
+  check('crafting table opens the craft panel', g().mode === 'panel' && g().panelKind === 'craft');
+  press('Escape'); step();
+
+  // --- doors: choose one by number key, hop to it ---
+  const d0 = g().world.doors[0];
+  g().P.x = d0.x - g().P.w / 2; g().P.y = d0.y - g().P.h;
+  step();
+  press('KeyE'); step();
+  check('door opens the "which door?" panel', g().mode === 'panel' && g().panelKind === 'door');
+  const dest = g().world.doors[2];               // door number "3" in-world
+  press('Digit3'); step();
+  check('picking door 3 warps Cokco there', g().mode === 'play' && Math.abs(g().P.x - (dest.x - g().P.w / 2)) < 4);
+
+  // --- chests give coins (or, rarely, a gem) ---
+  const ch = g().world.chests[0];
+  const wealth0 = g().G.coins + g().G.gems;
+  g().P.x = ch.x - g().P.w / 2; g().P.y = ch.y - g().P.h;
+  step();
+  press('KeyE'); step();
+  check('opening a chest adds coins or a gem', g().G.coins + g().G.gems > wealth0);
+  check('chest marked opened in save', g().G.chests['home:c0'] === true);
+  g().P.x = 120; g().P.y = 690;
 
   // bag panel
   press('KeyI'); step();

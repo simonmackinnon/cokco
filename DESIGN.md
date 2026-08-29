@@ -46,12 +46,27 @@ tracks what the code does so far.
 | "go home" button + map | Menu (`Esc`) → Go Home, Map |
 | Sea-urchin catching: timer, x2, blue, raise max 6→10 | `startMinigame()` — 34s timer, target 8, bank at the bucket, x2 urchins, rare blue drops a Blue Pearl, green **+2** bubble grows the basket to 10 |
 
+## Avery's round-2 feedback (built)
+
+| Feedback | In the game |
+| --- | --- |
+| Sea urchin blocks are a *crafted* item, from collected urchins | `RECIPES` — Sea Urchin Block = 5 urchins, at a crafting table |
+| Sea urchins should look like a spiky ball | `drawSpikeBall()` — used for pickups, loose urchins, the minigame, and the bag icon |
+| Crafting tables (fixed spots for now) | `tables` in `WORLDS`; `E` opens the `craft` panel. Later: bootstrap-craft / buy / find one |
+| Doors that travel between points in a level; choose by number | `doors` in `WORLDS`; `E` → `door` panel, pick by number key or tap; numbers match the in-world signs. Intra-world only for now |
+| Grass/ground more block-style (2D Minecraft) | `drawSolid()` — tiled dirt/stone blocks + a grass cap with blades |
+| Chests with Cokco-coins / rarely gems; rare gem boxes always gems | `chests` + `gemBoxes` in `WORLDS`; `G.coins` / `G.gems` counters, HUD-shown |
+| Day & night on the user's real system time | `dayFactor()` off `new Date()`; `drawNightTint()` + sky blend + moon/stars; a Lantern softens it |
+
 ## Roadmap (not built yet)
 
 - **Two-player** — split input (P2 on `IJKL` or a gamepad), shared screen or
   drop-in co-op. The blue page starts this thought but doesn't finish it.
 - **Enterable houses** — "if stood on → go to house": step onto a doorway and load
   a small interior scene (shops, the craft-house inside).
+- **Placing blocks** — the Sea Urchin Block is craftable but can't be placed yet;
+  a place/pick-up mechanic would make it a real building block.
+- **Inter-world doors** and **bootstrap-obtained crafting tables** (craft / buy / find).
 - **More layers** — the design says the worlds go on forever. Add `WORLDS` entries
   and chain drop-holes. Each new worm/NPC adds a problem.
 - **Deeper crafting chains** — recipes that need items from several challenges;
@@ -59,7 +74,6 @@ tracks what the code does so far.
 - **More challenge types** — not just catching; timed platforming, find-the-thing,
   simple boss patterns.
 - **Sound** — a few short blips (jump, collect, box-pop, win) via WebAudio.
-- **NPC state markers** polish — clearer "!" / "…" over NPCs, quest arrows.
 
 ## Shape of the code
 

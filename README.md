@@ -29,15 +29,26 @@ talk **E**, and 🎒 📋 ☰). Add `?touch=1` to the URL to force them on a des
 - **Cokco** — a round, hairless made-up creature with stick arms and legs.
 - **Two worlds ("layers")**: *Home* (grassy) and the *Ocean layer*, joined by
   **drop-holes** — fall through one and you land in the next layer.
+- **Block terrain** — the ground and grass are 2D-Minecraft-ish blocks.
 - **Stairs** you walk straight up, and an **elevator** that rides up 5s then back
   down. When it reaches the top, **green stairs appear** to a high ledge with a reward.
 - **Boxes with sea urchins inside** — bonk from below with a jump, or press `E`.
+  Urchins are spiky balls; you collect them.
+- **Crafting tables** (fixed spots for now) — press `E` to craft. Recipes:
+  **Sea Urchin Block** (5 sea urchins) and **Lantern** (4 shells + 1 gem).
+- **Doors** — press `E` to jump between the doors in the same world; if there's a
+  choice, pick by number key or tap. Numbers match the signs above each door.
+- **Chests** hold Cokco-coins (rarely a gem). **Gem boxes** are rare and always
+  hold gems.
+- **Day & night** follow your device's real clock — full day ~07–19, full night
+  ~21–05, with dusk/dawn in between. A **Lantern** in your bag softens the dark.
 - **NPCs that stand still and give you problems to solve.** The goal is to solve
   every problem; there's no ending, new ones appear.
 - **Sea-urchin catching minigame** (talk to Clawdia in the Ocean layer): fill the
   basket, bank at the bucket, watch for **x2** urchins and the rare **blue** one
   (a Blue Pearl). A green **+2** bubble grows the basket from 6 up to 10.
-- **Bag**: 10 pockets, 20 of each item. **Craft-house**: 3 urchins → a Grabber.
+- **Bag**: 10 pockets, 20 of each item; coins and gems have their own counters.
+  **Crafto** still trades 3 urchins → a Grabber.
 
 See `DESIGN.md` for the original paper design and the roadmap.
 
