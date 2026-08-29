@@ -1,6 +1,7 @@
 # Cokco
 
-A 2D platformer built from a kid's game design. One HTML file, no build step.
+A 2D platformer designed by Avery (a kid) and built with AI from the drawings.
+One HTML file, no build step.
 
 Live: **https://cokco.theclouddevopslearningblog.com**
 

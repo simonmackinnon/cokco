@@ -1,8 +1,9 @@
 # Cokco — design notes
 
-This is a game designed by a kid on three sheets of paper (a blue rules page, a
-grid-paper level map, and a pink note about the catching minigame). This file
-writes down that vision and tracks what the code does so far.
+This is a game designed by Avery (a kid) on three sheets of paper — a blue rules
+page, a grid-paper level map, and a pink note about the catching minigame. The
+code was built with AI from those drawings. This file writes down that vision and
+tracks what the code does so far.
 
 ## The original idea (from the drawings)
 
