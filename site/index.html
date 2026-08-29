@@ -1,0 +1,1126 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<title>Cokco</title>
+<style>
+  html,body{margin:0;height:100%;background:#0d1220;overflow:hidden;
+    font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;color:#fff;
+    -webkit-user-select:none;user-select:none;}
+  #wrap{position:fixed;inset:0;}
+  canvas{display:block;width:100%;height:100%;}
+  .overlay{position:absolute;inset:0;pointer-events:none;}
+  #hud{position:absolute;top:12px;left:14px;font-size:14px;line-height:1.5;
+    text-shadow:0 2px 6px rgba(0,0,0,.65);max-width:min(420px,70vw);}
+  #hud b{font-size:17px;}
+  #obj{opacity:.95;margin-top:2px;}
+  #urch{margin-top:4px;opacity:.9;font-size:15px;}
+  #hint{position:absolute;left:50%;bottom:18px;transform:translateX(-50%);
+    background:rgba(10,14,24,.72);padding:8px 15px;border-radius:999px;font-size:13px;white-space:nowrap;}
+  #toast{position:absolute;left:50%;top:60px;transform:translateX(-50%);
+    display:flex;flex-direction:column;gap:6px;align-items:center;width:max-content;max-width:90vw;}
+  .toast{background:rgba(255,214,120,.97);color:#3a2a00;font-weight:600;padding:8px 16px;
+    border-radius:10px;font-size:14px;box-shadow:0 6px 20px rgba(0,0,0,.35);text-align:center;}
+  #dialogue{position:absolute;left:50%;bottom:24px;transform:translateX(-50%);
+    width:min(680px,92vw);background:rgba(12,16,28,.95);border:2px solid #ffd678;
+    border-radius:14px;padding:15px 18px;pointer-events:auto;}
+  #dialogue .who{color:#ffd678;font-weight:700;margin-bottom:4px;}
+  #dialogue .txt{font-size:15px;line-height:1.55;min-height:46px;}
+  #dialogue .go{text-align:right;font-size:12px;opacity:.65;margin-top:4px;}
+  .panel{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);
+    width:min(560px,92vw);max-height:82vh;overflow:auto;background:rgba(12,16,28,.97);
+    border:2px solid #8fd3ff;border-radius:16px;padding:20px 22px;pointer-events:auto;}
+  .panel h2{margin:0 0 10px;}
+  .grid{display:grid;grid-template-columns:repeat(5,1fr);gap:8px;margin-top:10px;}
+  .slot{aspect-ratio:1;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.16);
+    border-radius:10px;display:flex;flex-direction:column;align-items:center;justify-content:center;
+    font-size:11px;gap:2px;text-align:center;padding:2px;}
+  .slot .ic{font-size:22px;}
+  .slot .q{opacity:.8;}
+  .qz{margin:7px 0;padding:10px 12px;border-radius:10px;background:rgba(255,255,255,.05);}
+  .qz.done{opacity:.55;}
+  .qz.done b{text-decoration:line-through;}
+  .qz .o{font-size:13px;opacity:.85;margin-top:2px;}
+  .btn{pointer-events:auto;display:inline-block;margin:8px 8px 0 0;padding:9px 15px;border-radius:10px;
+    background:#8fd3ff;color:#06263a;font-weight:700;cursor:pointer;border:none;font-size:14px;}
+  .btn.alt{background:rgba(255,255,255,.14);color:#fff;}
+  #title{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;
+    background:radial-gradient(circle at 50% 38%,#28477a,#0d1220);pointer-events:auto;text-align:center;padding:20px;}
+  #title h1{font-size:clamp(44px,12vw,76px);margin:0;letter-spacing:8px;color:#ff9d6f;text-shadow:0 6px 0 #b5623c;}
+  #title p{opacity:.82;margin:6px 0;}
+  .hidden{display:none!important;}
+  kbd{background:rgba(255,255,255,.18);border-radius:5px;padding:1px 6px;font-size:12px;}
+</style>
+</head>
+<body>
+<div id="wrap">
+  <canvas id="c"></canvas>
+  <div class="overlay">
+    <div id="hud" class="hidden"><b id="worldName">&mdash;</b><div id="obj"></div><div id="urch"></div></div>
+    <div id="hint" class="hidden"></div>
+    <div id="toast"></div>
+    <div id="dialogue" class="hidden"><div class="who"></div><div class="txt"></div><div class="go">&#9654; <kbd>E</kbd> / <kbd>Space</kbd></div></div>
+    <div id="panel" class="panel hidden"></div>
+  </div>
+  <div id="title">
+    <h1>COKCO</h1>
+    <p>a tiny world of problems to solve</p>
+    <div style="margin-top:14px">
+      <button class="btn" id="playBtn">Play &#9654;</button>
+      <button class="btn alt" id="newBtn">New game</button>
+    </div>
+    <p style="margin-top:20px;font-size:13px;opacity:.72;max-width:560px">
+      move <kbd>&larr; &rarr;</kbd> / <kbd>A D</kbd> &nbsp;&middot;&nbsp;
+      jump <kbd>&uarr;</kbd> / <kbd>W</kbd> / <kbd>Space</kbd> &nbsp;&middot;&nbsp;
+      talk &amp; open <kbd>E</kbd> &nbsp;&middot;&nbsp;
+      bag <kbd>I</kbd> &nbsp;&middot;&nbsp; problems <kbd>J</kbd> &nbsp;&middot;&nbsp; menu <kbd>Esc</kbd>
+    </p>
+  </div>
+</div>
+
+<script>
+"use strict";
+/* ============================================================
+   COKCO  -  a 2D platformer built from a kid's game design.
+   One file, no build step. Just open this file in a browser.
+
+   MAP OF THE CODE
+     1  config + helpers
+     2  input
+     3  save / load
+     4  items
+     5  worlds        <-- ADD NEW WORLDS / PLATFORMS / NPCS HERE
+     6  quests        <-- ADD NEW PROBLEMS HERE
+     7  physics
+     8  play update
+     9  dialogue
+    10  sea-urchin catching minigame
+    11  drawing
+    12  UI panels (bag / problems / menu / map)
+    13  main loop
+   ============================================================ */
+
+/* ---------- 1. config + helpers ---------- */
+const C = document.getElementById('c');
+const ctx = C.getContext('2d');
+let VW = 0, VH = 0, DPR = 1;
+function resize(){
+  DPR = Math.min(2, window.devicePixelRatio || 1);
+  VW = window.innerWidth; VH = window.innerHeight;
+  C.width = VW * DPR; C.height = VH * DPR;
+  ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
+  if (world) makeBubbles(world);
+}
+window.addEventListener('resize', resize);
+
+const CFG = {
+  cokco: { color: '#ff9d6f', belly: '#ffd9c2', w: 26, h: 34 },  // <-- Cokco's colour: change here
+  step: 16,        // tallest ledge Cokco walks straight up (this is how stairs work)
+  coyote: 0.10,    // grace time to still jump just after walking off an edge
+  buffer: 0.12,    // press jump slightly early and it still fires on landing
+};
+const clamp = (v,a,b) => v<a ? a : v>b ? b : v;
+const lerp  = (a,b,t) => a + (b-a)*t;
+const rand  = (a,b) => a + Math.random()*(b-a);
+const chance = p => Math.random() < p;
+function aabb(a,b){ return a.x < b.x+b.w && a.x+a.w > b.x && a.y < b.y+b.h && a.y+a.h > b.y; }
+function esc(s){ return String(s).replace(/[&<>]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;'}[c])); }
+
+/* ---------- 2. input ---------- */
+const keys = new Set(), pressed = new Set();
+const ALIAS = {
+  KeyA:'left', ArrowLeft:'left', KeyD:'right', ArrowRight:'right',
+  KeyW:'jump', ArrowUp:'jump', Space:'jump', KeyS:'down', ArrowDown:'down',
+};
+addEventListener('keydown', e => {
+  if (['ArrowUp','ArrowDown','ArrowLeft','ArrowRight','Space'].includes(e.code)) e.preventDefault();
+  if (!e.repeat) pressed.add(e.code);
+  keys.add(e.code);
+});
+addEventListener('keyup', e => keys.delete(e.code));
+function held(action){
+  for (const code in ALIAS) if (ALIAS[code] === action && keys.has(code)) return true;
+  return false;
+}
+function tapped(action){
+  for (const code in ALIAS) if (ALIAS[code] === action && pressed.has(code)) return true;
+  return false;
+}
+function key(...codes){ return codes.some(c => pressed.has(c)); }
+function clearTaps(){ pressed.clear(); }
+
+/* ---------- 3. save / load ---------- */
+const SAVE_KEY = 'cokco-save-v2';
+function blankSave(){
+  return {
+    world: 'home', px: null, py: null,
+    quests: { ocean:'inactive', craft:'inactive', pearl:'inactive' },
+    flags:  { greenStairs:false, oceanCalm:false, grabber:false, allSolvedSeen:false },
+    inv: [],            // [{id, qty}]  -  10 slots, 20 per slot
+    mgCap: 6,           // sea-urchin basket size (grows to 10)
+    boxes: {},          // "world:index" -> true once a box is popped
+    picked: {},         // "pk:world:index" -> true once a floor pickup is taken
+  };
+}
+let G = loadGame();
+function loadGame(){
+  try {
+    const s = JSON.parse(localStorage.getItem(SAVE_KEY));
+    if (s && s.quests) return Object.assign(blankSave(), s);
+  } catch (e) {}
+  return blankSave();
+}
+function persist(){ try { localStorage.setItem(SAVE_KEY, JSON.stringify(G)); } catch (e) {} }
+function hasSave(){ try { return !!localStorage.getItem(SAVE_KEY); } catch (e) { return false; } }
+
+/* ---------- 4. items ---------- */
+const ITEMS = {
+  urchin:       { name: 'Sea Urchin', icon: '🪸' }, // shell fallback below if unsupported
+  shell:        { name: 'Shell',      icon: '🐚' },
+  'blue-pearl': { name: 'Blue Pearl', icon: '🔵' },
+  grabber:      { name: 'Grabber',    icon: '🧤' },
+};
+function invCount(id){ let n = 0; for (const s of G.inv) if (s.id === id) n += s.qty; return n; }
+function invAdd(id, n){
+  let left = n;
+  for (const s of G.inv) if (s.id === id && s.qty < 20){ const a = Math.min(20 - s.qty, left); s.qty += a; left -= a; }
+  while (left > 0 && G.inv.length < 10){ const a = Math.min(20, left); G.inv.push({ id, qty: a }); left -= a; }
+  if (left > 0) toast('Bag full!');
+  persist();
+  return n - left;
+}
+function invRemove(id, n){
+  let left = n;
+  for (let i = G.inv.length - 1; i >= 0 && left > 0; i--){
+    const s = G.inv[i];
+    if (s.id === id){ const t = Math.min(s.qty, left); s.qty -= t; left -= t; if (s.qty === 0) G.inv.splice(i, 1); }
+  }
+  persist();
+  return n - left;
+}
+
+/* ---------- 5. worlds ----------------------------------------------------
+   A world is plain data. To build a new layer, copy one of these objects,
+   give it a key in WORLDS, and point a drop-hole at it.
+     solids   : {x,y,w,h, kind}   kind = ground|sand|ledge|coral|green|wall
+                kind:'green' bits stay hidden until the elevator reaches the top
+     elevators: {x,y,w,h, top, bottom, period}   moves bottom->top->bottom
+     boxes    : {x,y,w,h, gives, n}   bonk from below or press E -> pops open
+     pickups  : {x,y, id}             floating collectible, taken once
+     holes    : {x,y,w,h, target, arrival}   fall in -> go to another world
+     npcs     : {x,y (feet), name, color, shape, quest?, talk?, action?}
+   --------------------------------------------------------------------- */
+const WORLDS = {
+
+  home: {
+    name: 'Home', bg: 'home', w: 2800, h: 1050,
+    gravity: 1300, jump: -430, maxFall: 900,
+    arrivals: { spawn: {x:120, y:690}, fromOcean: {x:160, y:-50, vy:220} },
+    solids: [
+      { x:0,    y:770, w:1922, h:280, kind:'ground' },
+      { x:2040, y:770, w:760,  h:280, kind:'ground' },
+      // staircase up to a ledge (14px steps -> Cokco walks straight up)
+      { x:470, y:756, w:46, h:294, kind:'ledge' },
+      { x:512, y:742, w:46, h:308, kind:'ledge' },
+      { x:554, y:728, w:46, h:322, kind:'ledge' },
+      { x:596, y:714, w:46, h:336, kind:'ledge' },
+      { x:638, y:700, w:220, h:16, kind:'ledge' },
+      // green stairs -- appear only after the elevator touches the top.
+      // 12-14px rises so Cokco walks straight up them from the elevator.
+      { x:1216, y:340, w:46, h:10, kind:'green' },
+      { x:1252, y:326, w:46, h:10, kind:'green' },
+      { x:1288, y:312, w:46, h:10, kind:'green' },
+      { x:1322, y:298, w:210, h:16, kind:'ledge' },   // high reward ledge
+    ],
+    elevators: [
+      { x:1120, y:730, w:100, h:16, top:352, bottom:730, period:5 },
+    ],
+    boxes: [
+      { x:770,  y:666, w:32, h:32, gives:'urchin', n:3 },  // on the ledge
+      { x:980,  y:648, w:32, h:32, gives:'urchin', n:3 },  // floating - jump up and bonk it
+      { x:2260, y:648, w:32, h:32, gives:'urchin', n:3 },  // past the pit
+    ],
+    pickups: [ { x:1420, y:270, id:'shell' } ],            // on the high green-stairs ledge
+    holes: [ { x:1916, y:900, w:132, h:130, target:'ocean', arrival:'fromHome' } ],
+    npcs: [
+      { x:250,  y:770, name:'Wriggo', color:'#e8a0c0', shape:'worm',    quest:'ocean' },
+      { x:1630, y:770, name:'Crafto', color:'#9ad0a0', shape:'crafter', quest:'craft' },
+      { x:1860, y:770, name:'Sella',  color:'#c9a2ff', shape:'seller',  quest:'pearl' },
+      { x:2300, y:770, name:'Fenn',   color:'#8fd3a0', shape:'leaf',
+        talk:['The layers go down and down.', 'Solve every trouble you find and new ones still sprout.', 'That is just how it is here.'] },
+    ],
+  },
+
+  ocean: {
+    name: 'Ocean layer', bg: 'ocean', w: 2500, h: 1100,
+    gravity: 650, jump: -380, maxFall: 520, floaty: true,
+    arrivals: { fromHome: {x:150, y:-60, vy:240}, spawn: {x:150, y:760} },
+    solids: [
+      { x:0,    y:840, w:2158, h:260, kind:'sand' },
+      { x:2280, y:840, w:220,  h:260, kind:'sand' },
+      { x:470,  y:720, w:150, h:16, kind:'coral' },
+      { x:720,  y:620, w:150, h:16, kind:'coral' },
+      { x:980,  y:700, w:170, h:16, kind:'coral' },
+      { x:1250, y:580, w:160, h:16, kind:'coral' },
+      { x:1520, y:680, w:170, h:16, kind:'coral' },
+    ],
+    elevators: [],
+    boxes: [
+      { x:900,  y:740, w:32, h:32, gives:'urchin', n:3 },
+      { x:1300, y:536, w:32, h:32, gives:'urchin', n:3 },
+    ],
+    pickups: [],
+    holes: [ { x:2160, y:980, w:130, h:130, target:'home', arrival:'fromOcean' } ],
+    npcs: [
+      { x:360, y:840, name:'Clawdia', color:'#ff7a59', shape:'crab', action:'minigame',
+        talk:['The water keeps churning - the urchins are everywhere.',
+              'Catch them for me! Fill the bucket before time runs out.',
+              'Bump the green +2 bubble to make your basket bigger. Ready?'] },
+      { x:560, y:840, name:'Bubbo', color:'#7ad0e0', shape:'fish',
+        talk:['Some urchins are worth double.', 'The blue one is rare - it hides a Blue Pearl.',
+              'Walk over the bucket on the left to bank what you carry.'] },
+    ],
+  },
+
+};
+
+/* ---------- 6. quests (the "problems") ---------- */
+const QUESTS = {
+  ocean: {
+    title: 'The worried worm', giver: 'Wriggo',
+    offer: ["Cokco! Something down in the Ocean layer keeps stirring up the water.",
+            "Drop through the hole past the little steps and find out what.",
+            "There's a challenge down there. Beat it and the water should settle."],
+    active: ["Any luck below? Beat Clawdia's challenge, then come tell me."],
+    turnin: ["The water feels calm again... I can sense it from up here.", "Thank you, Cokco. Here, take these."],
+    done:   ["The Ocean layer is peaceful now. You did good."],
+  },
+  craft: {
+    title: 'Crafto needs urchins', giver: 'Crafto',
+    offer: ["I can craft useful things, but my hands are empty.",
+            "Bring me 3 Sea Urchins and I'll make you a Grabber - it helps you catch faster."],
+    active: ["Still need 3 Sea Urchins. Bonk the boxes - urchins hide inside."],
+    turnin: ["Three urchins! Hold still...", "*clatter clatter clatter*", "One Grabber, fresh made. You'll catch quicker now."],
+    done:   ["Grabber holding up? Good. Come back if it breaks."],
+  },
+  pearl: {
+    title: 'Sella wants a pearl', giver: 'Sella',
+    offer: ["Heading down to the water? Watch for a BLUE urchin in the catching game.",
+            "It holds a Blue Pearl. Bring me one and I'll pay you in shells."],
+    active: ["No Blue Pearl yet? The blue urchin is rare - keep catching."],
+    turnin: ["A Blue Pearl! Beautiful. Here - shells, as promised."],
+    done:   ["Come back if you ever find another pearl."],
+  },
+};
+
+/* ---------- game state ---------- */
+let world = null;
+let mode = 'title';        // title | play | dialogue | panel | minigame | transition
+let T = 0, dt = 0;
+let dialogue = null;
+let MG = null;
+let trans = null;
+let panelKind = null;
+let hintText = '';
+let toasts = [];
+let saveTick = 0;
+const loose = [];          // urchins knocked out of boxes, bouncing around
+const cam = { x: 0, y: 0 };
+
+const P = {
+  x:0, y:0, w:CFG.cokco.w, h:CFG.cokco.h, vx:0, vy:0,
+  face:1, walk:0, squash:0,
+  grounded:false, groundRef:null, headBonk:null, jumping:false,
+  jumpBuf:0, coyote:0, airTime:0,
+};
+
+function toast(m){ toasts.push({ m, t: 2.6 }); }
+
+/* ---------- 7. physics ---------- */
+function worldSolids(){
+  const s = [];
+  for (const r of world.solids) if (r.kind !== 'green' || G.flags.greenStairs) s.push(r);
+  for (const e of world.elevators) s.push(e);
+  world.boxes.forEach((b, i) => { if (!G.boxes[world.key + ':' + i]) s.push(b); });
+  return s;
+}
+function moveX(solids){
+  P.x += P.vx * dt;
+  for (const s of solids){
+    if (!aabb(P, s)) continue;
+    const overlapY = (P.y + P.h) - s.y;            // how far Cokco's feet sit below this ledge's top
+    if (P.vx !== 0 && overlapY > 0 && overlapY <= CFG.step){
+      const lifted = { x:P.x, y:s.y - P.h, w:P.w, h:P.h };
+      if (!solids.some(o => o !== s && aabb(lifted, o))){ P.y = s.y - P.h; continue; } // step up (stairs)
+    }
+    P.x = P.vx > 0 ? s.x - P.w : s.x + s.w;
+    P.vx = 0;
+  }
+  P.x = clamp(P.x, 0, world.w - P.w);
+}
+function moveY(solids){
+  P.y += P.vy * dt;
+  P.grounded = false; P.groundRef = null; P.headBonk = null;
+  for (const s of solids){
+    if (!aabb(P, s)) continue;
+    if (P.vy > 0){ P.y = s.y - P.h; P.vy = 0; P.grounded = true; P.groundRef = s; P.jumping = false; }
+    else if (P.vy < 0){ P.y = s.y + s.h; P.vy = 0; P.headBonk = s; }
+  }
+}
+function placePlayer(pt){
+  P.x = pt.x; P.y = pt.y; P.vx = 0; P.vy = pt.vy || 0;
+  P.grounded = false; P.groundRef = null; P.jumping = false;
+  cam.x = clamp(P.x - VW/2, 0, Math.max(0, world.w - VW));
+  cam.y = clamp(P.y - VH/2, 0, Math.max(0, world.h - VH));
+}
+
+/* ---------- world loading + travel ---------- */
+function loadWorld(id){
+  world = WORLDS[id];
+  world.key = id;
+  world.boxes.forEach((b, i) => { b.boxKey = id + ':' + i; b.__box = true; b.gives = b.gives || 'urchin'; b.n = b.n || 3; });
+  for (const e of world.elevators) e.t = 0;
+  loose.length = 0;
+  makeBubbles(world);
+  G.world = id;
+  G.flags['visited_' + id] = true;
+  persist();
+}
+function travel(target, arrival){
+  trans = { target, arrival, t: 0, swapped: false };
+  mode = 'transition';
+}
+function updateTransition(){
+  trans.t += dt;
+  if (trans.t >= 0.32 && !trans.swapped){
+    loadWorld(trans.target);
+    placePlayer(world.arrivals[trans.arrival] || world.arrivals.spawn);
+    G.px = P.x; G.py = P.y; persist();
+    trans.swapped = true;
+  }
+  if (trans.t >= 0.64){ trans = null; mode = 'play'; }
+}
+
+/* ---------- 8. play update ---------- */
+function updatePlay(){
+  const w = world;
+
+  // elevators: bottom -> top -> bottom on a `period`-second climb each way
+  for (const e of w.elevators){
+    e.t += dt;
+    const ph = (e.t % (2 * e.period)) / e.period;   // 0..2
+    const f = ph < 1 ? ph : 2 - ph;                 // 0..1..0
+    const prev = e.y;
+    e.y = lerp(e.bottom, e.top, f);
+    e.dy = e.y - prev;
+    if (e.y <= e.top + 2 && !G.flags.greenStairs){
+      G.flags.greenStairs = true; persist();
+      toast('The elevator reached the top - green stairs appeared!');
+    }
+  }
+
+  // carried by the elevator you're standing on
+  if (P.groundRef && P.groundRef.dy !== undefined && P.grounded) P.y += P.groundRef.dy;
+
+  // walk
+  const dir = (held('right') ? 1 : 0) - (held('left') ? 1 : 0);
+  if (dir !== 0){ P.vx += dir * 1600 * dt; P.face = dir; }
+  const drag = P.grounded ? 1800 : 700;
+  if (dir === 0 || Math.sign(dir) !== Math.sign(P.vx)){
+    const s = Math.sign(P.vx);
+    P.vx -= s * drag * dt;
+    if (Math.sign(P.vx) !== s) P.vx = 0;
+  }
+  P.vx = clamp(P.vx, -190, 190);
+  if (Math.abs(P.vx) > 6) P.walk += dt * 12; else P.walk = 0;
+
+  // jump with coyote-time + input buffer, and variable height
+  if (tapped('jump')) P.jumpBuf = CFG.buffer;
+  P.jumpBuf -= dt;
+  P.coyote = P.grounded ? CFG.coyote : P.coyote - dt;
+  if (P.jumpBuf > 0 && P.coyote > 0){
+    P.vy = w.jump; P.jumpBuf = 0; P.coyote = 0; P.grounded = false; P.jumping = true;
+  }
+  if (P.jumping && !held('jump') && P.vy < 0){ P.vy *= 0.5; P.jumping = false; }
+
+  P.vy += w.gravity * dt;
+  P.vy = Math.min(P.vy, w.maxFall);
+
+  const solids = worldSolids();
+  moveX(solids);
+  moveY(solids);
+
+  if (P.headBonk && P.headBonk.__box) openBox(P.headBonk);
+
+  // squash on landing
+  if (P.grounded && P.airTime > 0.16) P.squash = 1;
+  P.airTime = P.grounded ? 0 : P.airTime + dt;
+  P.squash = Math.max(0, P.squash - dt * 4);
+
+  // fell out of the world
+  if (P.y > w.h + 300) placePlayer(w.arrivals.spawn);
+
+  // loose urchins from popped boxes
+  for (let i = loose.length - 1; i >= 0; i--){
+    const l = loose[i];
+    l.life -= dt;
+    if (!l.grounded){
+      l.vy += w.gravity * dt;
+      l.x += l.vx * dt; l.y += l.vy * dt;
+      for (const s of solids){
+        if (l.x > s.x && l.x < s.x + s.w && l.vy > 0 && l.y >= s.y - 2 && l.y < s.y + 18){
+          l.y = s.y - 2; l.vy *= -0.35; l.vx *= 0.6;
+          if (Math.abs(l.vy) < 30){ l.vy = 0; l.grounded = true; l.vx = 0; }
+        }
+      }
+    }
+    if (aabb(P, { x:l.x - 10, y:l.y - 16, w:20, h:22 })){
+      const got = invAdd(l.id, 1);
+      if (got) toast('+1 ' + ITEMS[l.id].name);
+      loose.splice(i, 1); continue;
+    }
+    if (l.life <= 0 || l.y > w.h + 100) loose.splice(i, 1);
+  }
+
+  // floor pickups
+  w.pickups.forEach((p, i) => {
+    const k = 'pk:' + w.key + ':' + i;
+    if (G.picked[k]) return;
+    if (aabb(P, { x:p.x - 12, y:p.y - 12, w:24, h:24 })){
+      G.picked[k] = true;
+      const got = invAdd(p.id, 1);
+      if (got) toast('Found: ' + ITEMS[p.id].name);
+      persist();
+    }
+  });
+
+  // what's in reach?
+  let npcNear = null, boxNear = null, holeNear = null;
+  for (const n of w.npcs){
+    if (Math.abs((P.x + P.w/2) - n.x) < 46 && Math.abs((P.y + P.h) - n.y) < 74) npcNear = n;
+  }
+  w.boxes.forEach((b, i) => {
+    if (G.boxes[w.key + ':' + i]) return;
+    if (Math.abs((P.x + P.w/2) - (b.x + b.w/2)) < 40 && Math.abs((P.y + P.h/2) - (b.y + b.h/2)) < 44) boxNear = b;
+  });
+  for (const h of w.holes){
+    if (P.grounded && Math.abs((P.x + P.w/2) - (h.x + h.w/2)) < 110) holeNear = h;
+  }
+
+  hintText = npcNear ? 'E — talk to ' + npcNear.name
+           : boxNear ? 'E — open the box'
+           : holeNear ? '↓ walk into the hole to drop to ' + WORLDS[holeNear.target].name
+           : 'Esc menu · I bag · J problems';
+
+  if (key('KeyE', 'Enter')){
+    if (npcNear){ talkTo(npcNear); return; }
+    if (boxNear){ openBox(boxNear); }
+  }
+
+  // drop-holes
+  for (const h of w.holes) if (aabb(P, h)) { travel(h.target, h.arrival); return; }
+
+  // camera
+  cam.x = clamp(lerp(cam.x, P.x + P.w/2 - VW/2, 0.12), 0, Math.max(0, world.w - VW));
+  cam.y = clamp(lerp(cam.y, P.y + P.h/2 - VH * 0.58, 0.12), 0, Math.max(0, world.h - VH));
+
+  // autosave position now and then
+  saveTick += dt;
+  if (saveTick > 2){ saveTick = 0; G.px = P.x; G.py = P.y; G.world = w.key; persist(); }
+}
+
+function openBox(b){
+  if (G.boxes[b.boxKey]) return;
+  G.boxes[b.boxKey] = true;
+  persist();
+  for (let i = 0; i < b.n; i++){
+    loose.push({ x:b.x + b.w/2, y:b.y + 4, vx:rand(-90, 90), vy:rand(-260, -150), id:b.gives, life:9, grounded:false });
+  }
+  toast('The box pops open!');
+}
+
+/* ---------- 9. dialogue ---------- */
+function talkTo(n){
+  if (n.quest){
+    const q = QUESTS[n.quest], st = G.quests[n.quest];
+    if (st === 'inactive'){
+      dialogue = { who:n.name, lines:q.offer.slice(), i:0, end:() => {
+        G.quests[n.quest] = 'active'; persist(); toast('New problem: ' + q.title);
+      }};
+    } else if (st === 'active' && n.quest === 'craft' && invCount('urchin') >= 3){
+      dialogue = { who:n.name, lines:q.turnin.slice(), i:0, end:() => {
+        invRemove('urchin', 3); invAdd('grabber', 1); G.flags.grabber = true;
+        G.quests.craft = 'done'; persist(); toast('Crafted: Grabber'); checkAllSolved();
+      }};
+    } else if (st === 'active' && n.quest === 'pearl' && invCount('blue-pearl') >= 1){
+      dialogue = { who:n.name, lines:q.turnin.slice(), i:0, end:() => {
+        invRemove('blue-pearl', 1); invAdd('shell', 5);
+        G.quests.pearl = 'done'; persist(); toast('+5 Shells'); checkAllSolved();
+      }};
+    } else if ((st === 'active' && n.quest === 'ocean' && G.flags.oceanCalm) || st === 'ready'){
+      dialogue = { who:n.name, lines:q.turnin.slice(), i:0, end:() => {
+        G.quests[n.quest] = 'done';
+        if (n.quest === 'ocean') invAdd('shell', 3);
+        persist(); toast('Problem solved: ' + q.title); checkAllSolved();
+      }};
+    } else if (st === 'done'){
+      dialogue = { who:n.name, lines:q.done.slice(), i:0, end:null };
+    } else {
+      dialogue = { who:n.name, lines:q.active.slice(), i:0, end:null };
+    }
+  } else {
+    dialogue = { who:n.name, lines:(n.talk || ['...']).slice(), i:0,
+      end: n.action === 'minigame' ? () => startMinigame() : null };
+  }
+  mode = 'dialogue';
+}
+function advanceDialogue(){
+  dialogue.i++;
+  if (dialogue.i >= dialogue.lines.length){
+    const f = dialogue.end; dialogue = null; mode = 'play';
+    if (f) f();
+  }
+}
+function checkAllSolved(){
+  if (Object.values(G.quests).every(s => s === 'done') && !G.flags.allSolvedSeen){
+    G.flags.allSolvedSeen = true; persist();
+    toast('Every known problem solved! Keep exploring - more will sprout.');
+  }
+}
+
+/* ---------- 10. sea-urchin catching minigame ---------- */
+let mgBub = [];
+function startMinigame(){
+  MG = {
+    time: G.flags.grabber ? 40 : 34,
+    target: 8,
+    score: 0, banked: 0, blue: false,
+    cap: G.mgCap, basket: [], bx: VW / 2,
+    urchins: [], spawn: 0, plusIn: 6,
+    result: null, endT: 0,
+  };
+  mgBub = Array.from({ length: 40 }, () => ({ x:rand(0, VW), y:rand(0, VH), r:rand(2, 6), s:rand(20, 55) }));
+  mode = 'minigame';
+}
+function basketW(){ return G.flags.grabber ? 98 : 78; }
+function bucketX(){ return 70; }
+function basketY(){ return VH - 120; }
+function updateMinigame(){
+  for (const b of mgBub){ b.y -= b.s * dt; if (b.y < -10){ b.y = VH + 10; b.x = rand(0, VW); } }
+
+  if (MG.result){
+    MG.endT -= dt;
+    if (MG.endT <= 0) finishMinigame();
+    return;
+  }
+
+  MG.time -= dt;
+  const dir = (held('right') ? 1 : 0) - (held('left') ? 1 : 0);
+  MG.bx = clamp(MG.bx + dir * 300 * dt, 90, VW - 60);
+
+  MG.spawn -= dt;
+  if (MG.spawn <= 0){
+    MG.spawn = rand(0.45, 0.95);
+    const type = chance(0.08) ? 'blue' : chance(0.24) ? 'x2' : 'norm';
+    MG.urchins.push({ x:rand(110, VW - 90), y:VH - 50, vx:rand(-35, 35), vy:rand(-115, -70),
+      r:type === 'x2' ? 16 : 12, type });
+  }
+  MG.plusIn -= dt;
+  if (MG.plusIn <= 0 && MG.cap < 10){
+    MG.plusIn = rand(6, 11);
+    MG.urchins.push({ x:rand(110, VW - 90), y:VH - 50, vx:rand(-25, 25), vy:-95, r:13, type:'plus' });
+  }
+
+  const bw = basketW(), bx = MG.bx;
+  const box = { x:bx - bw/2, y:basketY() - 16, w:bw, h:30 };
+  for (let i = MG.urchins.length - 1; i >= 0; i--){
+    const u = MG.urchins[i];
+    u.x += u.vx * dt; u.y += u.vy * dt; u.vx *= 0.999;
+    if (u.y < -30){ MG.urchins.splice(i, 1); continue; }
+    if (aabb({ x:u.x - u.r, y:u.y - u.r, w:u.r * 2, h:u.r * 2 }, box)){
+      if (u.type === 'plus'){
+        MG.cap = Math.min(10, MG.cap + 2); G.mgCap = MG.cap; persist();
+        toast('Basket +2  (now ' + MG.cap + ')');
+        MG.urchins.splice(i, 1);
+      } else if (MG.basket.length < MG.cap){
+        MG.basket.push(u.type);
+        if (u.type === 'blue') MG.blue = true;
+        MG.urchins.splice(i, 1);
+      } else {
+        u.vy = 60; // basket full - it bounces away, go bank some
+      }
+    }
+  }
+
+  // bank at the bucket
+  if (MG.bx < bucketX() + 55 && MG.basket.length){
+    for (const t of MG.basket) MG.score += t === 'blue' ? 5 : t === 'x2' ? 2 : 1;
+    MG.banked += MG.basket.length;
+    MG.basket = [];
+    toast('Banked!');
+  }
+
+  if (MG.score >= MG.target){ MG.result = 'win'; MG.endT = 1.8; }
+  else if (MG.time <= 0){ MG.result = MG.score >= MG.target ? 'win' : 'lose'; MG.endT = 1.8; }
+
+  if (key('Escape')){ MG = null; mode = 'play'; }
+}
+function finishMinigame(){
+  if (MG.result === 'win'){
+    const got = invAdd('urchin', Math.min(MG.banked, 40));
+    let msg = 'You calmed the water!  +' + got + ' urchin' + (got === 1 ? '' : 's');
+    if (MG.blue){ invAdd('blue-pearl', 1); msg += '  &  a Blue Pearl!'; }
+    if (G.quests.ocean === 'active') G.quests.ocean = 'ready';
+    G.flags.oceanCalm = true;
+    persist();
+    toast(msg);
+  } else {
+    toast('The urchins scattered! Talk to Clawdia to try again.');
+  }
+  MG = null; mode = 'play';
+}
+
+/* ---------- 11. drawing ---------- */
+function makeBubbles(w){
+  w._bub = Array.from({ length: 34 }, () => ({ x:rand(0, VW), y:rand(0, VH), r:rand(2, 6), s:rand(15, 45) }));
+}
+function drawCokco(x, y, faceEyes, walk, squash){
+  const w = CFG.cokco.w, h = CFG.cokco.h, cx = x + w/2, r = w/2, by = y + r + 2;
+  const sw = Math.sin(walk) * 4;
+  ctx.save();
+  ctx.strokeStyle = '#3b2b22'; ctx.lineWidth = 3; ctx.lineCap = 'round';
+  ctx.beginPath();
+  ctx.moveTo(cx - 5, by + r - 1); ctx.lineTo(cx - 5 + sw, y + h);
+  ctx.moveTo(cx + 5, by + r - 1); ctx.lineTo(cx + 5 - sw, y + h);
+  ctx.moveTo(cx - r + 2, by + 2); ctx.lineTo(cx - r - 5, by + 9 - sw);
+  ctx.moveTo(cx + r - 2, by + 2); ctx.lineTo(cx + r + 5, by + 9 + sw);
+  ctx.stroke();
+  ctx.translate(cx, by);
+  ctx.scale(1 - squash * 0.18, 1 + squash * 0.22);
+  ctx.fillStyle = CFG.cokco.color;
+  ctx.beginPath(); ctx.arc(0, 0, r, 0, 7); ctx.fill();
+  ctx.fillStyle = CFG.cokco.belly;
+  ctx.beginPath(); ctx.arc(0, 3, r * 0.6, 0, 7); ctx.fill();
+  ctx.fillStyle = '#20242b';
+  const ex = faceEyes * 2.5;
+  ctx.beginPath(); ctx.arc(-4 + ex, -3, 2.1, 0, 7); ctx.arc(4 + ex, -3, 2.1, 0, 7); ctx.fill();
+  ctx.restore();
+}
+function marker(n){
+  if (!n.quest) return n.action === 'minigame' ? '!' : '';
+  const s = G.quests[n.quest];
+  if (s === 'inactive' || s === 'ready') return '!';
+  if (s === 'active'){
+    if (n.quest === 'craft' && invCount('urchin') >= 3) return '!';
+    if (n.quest === 'pearl' && invCount('blue-pearl') >= 1) return '!';
+    if (n.quest === 'ocean' && G.flags.oceanCalm) return '!';
+    return '…';
+  }
+  return '';
+}
+function drawCreature(n){
+  const x = n.x, y = n.y;
+  ctx.save();
+  if (n.shape === 'worm'){
+    ctx.fillStyle = n.color;
+    for (let i = 0; i < 4; i++){ ctx.beginPath(); ctx.arc(x + Math.sin(T * 4 + i) * 3, y - 10 - i * 11, 9 - i * 0.6, 0, 7); ctx.fill(); }
+    ctx.fillStyle = '#20242b'; ctx.beginPath(); ctx.arc(x - 2, y - 46, 1.6, 0, 7); ctx.arc(x + 3, y - 46, 1.6, 0, 7); ctx.fill();
+  } else if (n.shape === 'crab'){
+    ctx.fillStyle = n.color;
+    ctx.beginPath(); ctx.ellipse(x, y - 14, 20, 13, 0, 0, 7); ctx.fill();
+    ctx.strokeStyle = n.color; ctx.lineWidth = 5; ctx.lineCap = 'round';
+    ctx.beginPath(); ctx.moveTo(x - 18, y - 14); ctx.lineTo(x - 30, y - 20 + Math.sin(T * 5) * 3);
+    ctx.moveTo(x + 18, y - 14); ctx.lineTo(x + 30, y - 20 - Math.sin(T * 5) * 3); ctx.stroke();
+    ctx.fillStyle = '#20242b'; ctx.beginPath(); ctx.arc(x - 6, y - 24, 2, 0, 7); ctx.arc(x + 6, y - 24, 2, 0, 7); ctx.fill();
+  } else if (n.shape === 'seller'){
+    ctx.fillStyle = '#7a5a3c'; ctx.fillRect(x - 22, y - 16, 44, 6); ctx.fillRect(x - 20, y - 10, 5, 10); ctx.fillRect(x + 15, y - 10, 5, 10);
+    ctx.fillStyle = n.color; ctx.beginPath(); ctx.arc(x, y - 30, 12, 0, 7); ctx.fill();
+    ctx.fillStyle = '#20242b'; ctx.beginPath(); ctx.arc(x - 3, y - 32, 1.8, 0, 7); ctx.arc(x + 3, y - 32, 1.8, 0, 7); ctx.fill();
+    ctx.fillStyle = '#ffd678'; ctx.font = '12px system-ui'; ctx.textAlign = 'center'; ctx.fillText('$', x, y - 4);
+  } else if (n.shape === 'crafter'){
+    ctx.fillStyle = n.color; ctx.beginPath(); ctx.arc(x, y - 16, 13, 0, 7); ctx.fill();
+    ctx.strokeStyle = '#8a8f98'; ctx.lineWidth = 3; ctx.beginPath(); ctx.moveTo(x + 9, y - 21); ctx.lineTo(x + 18, y - 12); ctx.stroke();
+    ctx.fillStyle = '#8a8f98'; ctx.fillRect(x + 14, y - 16, 8, 5);
+    ctx.fillStyle = '#20242b'; ctx.beginPath(); ctx.arc(x - 3, y - 18, 1.8, 0, 7); ctx.arc(x + 3, y - 18, 1.8, 0, 7); ctx.fill();
+  } else if (n.shape === 'fish'){
+    ctx.fillStyle = n.color; ctx.beginPath(); ctx.ellipse(x, y - 16 + Math.sin(T * 3) * 3, 13, 9, 0, 0, 7); ctx.fill();
+    ctx.beginPath(); ctx.moveTo(x + 11, y - 16); ctx.lineTo(x + 20, y - 22); ctx.lineTo(x + 20, y - 10); ctx.fill();
+    ctx.fillStyle = '#20242b'; ctx.beginPath(); ctx.arc(x - 5, y - 18, 1.8, 0, 7); ctx.fill();
+  } else { // leaf
+    ctx.fillStyle = n.color; ctx.beginPath(); ctx.arc(x, y - 16, 12, 0, 7); ctx.fill();
+    ctx.fillStyle = '#3fae4a'; ctx.beginPath();
+    ctx.ellipse(x - 10, y - 24, 7, 4, -0.6, 0, 7); ctx.ellipse(x + 10, y - 24, 7, 4, 0.6, 0, 7); ctx.fill();
+    ctx.fillStyle = '#20242b'; ctx.beginPath(); ctx.arc(x - 3, y - 18, 1.8, 0, 7); ctx.arc(x + 3, y - 18, 1.8, 0, 7); ctx.fill();
+  }
+  ctx.fillStyle = 'rgba(0,0,0,.5)'; ctx.font = '11px system-ui'; ctx.textAlign = 'center';
+  const tw = ctx.measureText(n.name).width;
+  ctx.fillRect(x - tw/2 - 5, y - 64, tw + 10, 15);
+  ctx.fillStyle = '#fff'; ctx.fillText(n.name, x, y - 53);
+  const mk = marker(n);
+  if (mk){ ctx.fillStyle = mk === '!' ? '#ffd678' : '#8fd3ff'; ctx.font = 'bold 18px system-ui'; ctx.fillText(mk, x, y - 70); }
+  ctx.restore();
+}
+function drawBG(){
+  if (world.bg === 'home'){
+    const g = ctx.createLinearGradient(0, 0, 0, VH);
+    g.addColorStop(0, '#8fd0ff'); g.addColorStop(1, '#e9f7ff');
+    ctx.fillStyle = g; ctx.fillRect(0, 0, VW, VH);
+    ctx.fillStyle = '#fff3b0'; ctx.beginPath(); ctx.arc(VW - 90, 92, 40, 0, 7); ctx.fill();
+    ctx.fillStyle = '#bfe3a0';
+    for (let i = -1; i < 7; i++){ const hx = i * 380 - (cam.x * 0.3) % 380; ctx.beginPath(); ctx.arc(hx + 190, VH - 90, 240, Math.PI, 2 * Math.PI); ctx.fill(); }
+    ctx.fillStyle = '#a6d488';
+    for (let i = -1; i < 8; i++){ const hx = i * 300 - (cam.x * 0.45) % 300; ctx.beginPath(); ctx.arc(hx + 150, VH - 40, 200, Math.PI, 2 * Math.PI); ctx.fill(); }
+    ctx.fillStyle = 'rgba(255,255,255,.85)';
+    for (let i = 0; i < 4; i++){
+      const cx0 = (i * 460 + T * 10 - cam.x * 0.5) % (VW + 500) - 250, cy0 = 70 + i * 26;
+      ctx.beginPath(); ctx.arc(cx0, cy0, 22, 0, 7); ctx.arc(cx0 + 24, cy0 + 6, 18, 0, 7); ctx.arc(cx0 - 22, cy0 + 6, 16, 0, 7); ctx.fill();
+    }
+  } else {
+    const g = ctx.createLinearGradient(0, 0, 0, VH);
+    g.addColorStop(0, '#0c3a4e'); g.addColorStop(0.55, '#12617a'); g.addColorStop(1, '#1a86a0');
+    ctx.fillStyle = g; ctx.fillRect(0, 0, VW, VH);
+    ctx.fillStyle = 'rgba(255,255,255,.05)';
+    for (let i = 0; i < 5; i++){
+      const x0 = (i * 260 + Math.sin(T * 0.2 + i) * 40) % (VW + 200) - 100;
+      ctx.beginPath(); ctx.moveTo(x0, 0); ctx.lineTo(x0 + 70, 0); ctx.lineTo(x0 + 180, VH); ctx.lineTo(x0 + 90, VH); ctx.fill();
+    }
+    ctx.fillStyle = 'rgba(255,255,255,.18)';
+    for (const b of world._bub){ b.y -= b.s * dt; if (b.y < -10){ b.y = VH + 10; b.x = rand(0, VW); } ctx.beginPath(); ctx.arc(b.x, b.y, b.r, 0, 7); ctx.fill(); }
+  }
+}
+function drawSolid(s){
+  if (s.kind === 'green'){
+    ctx.fillStyle = '#37d84a'; ctx.fillRect(s.x, s.y, s.w, s.h);
+    ctx.fillStyle = 'rgba(255,255,255,.35)'; ctx.fillRect(s.x, s.y, s.w, 2);
+    return;
+  }
+  const body = s.kind === 'sand' ? '#e3cd94' : s.kind === 'coral' ? '#ff8f7a' : s.kind === 'wall' ? '#6b5140' : '#7a5a3c';
+  const top  = s.kind === 'sand' ? '#d6bd78' : s.kind === 'coral' ? '#ffd0a0' : '#6bb033';
+  ctx.fillStyle = body; ctx.fillRect(s.x, s.y, s.w, s.h);
+  ctx.fillStyle = top; ctx.fillRect(s.x, s.y, s.w, s.kind === 'coral' ? 5 : 7);
+  if (s.kind === 'ground' || s.kind === 'ledge'){
+    ctx.strokeStyle = 'rgba(60,120,30,.5)'; ctx.lineWidth = 2;
+    for (let gx = s.x + 6; gx < s.x + s.w; gx += 16){
+      ctx.beginPath(); ctx.moveTo(gx, s.y + 7); ctx.lineTo(gx + Math.sin(gx * 0.3 + T) * 2, s.y - 4); ctx.stroke();
+    }
+  }
+}
+function drawBox(b, i){
+  const open = !!G.boxes[world.key + ':' + i];
+  ctx.fillStyle = open ? '#8a6a44' : '#c98a3c';
+  ctx.fillRect(b.x, b.y, b.w, b.h);
+  ctx.strokeStyle = 'rgba(0,0,0,.35)'; ctx.lineWidth = 2;
+  ctx.strokeRect(b.x + 1, b.y + 1, b.w - 2, b.h - 2);
+  ctx.beginPath();
+  ctx.moveTo(b.x, b.y); ctx.lineTo(b.x + b.w, b.y + b.h);
+  ctx.moveTo(b.x + b.w, b.y); ctx.lineTo(b.x, b.y + b.h);
+  ctx.stroke();
+  if (!open){
+    ctx.fillStyle = '#3b2b2b';
+    for (let a = 0; a < 6; a++){
+      const ang = a / 6 * Math.PI * 2;
+      ctx.beginPath();
+      ctx.moveTo(b.x + b.w/2, b.y + b.h/2);
+      ctx.lineTo(b.x + b.w/2 + Math.cos(ang) * 9, b.y + b.h/2 + Math.sin(ang) * 9);
+      ctx.stroke();
+    }
+    ctx.fillStyle = '#7a3b6b'; ctx.beginPath(); ctx.arc(b.x + b.w/2, b.y + b.h/2, 3.5, 0, 7); ctx.fill();
+  }
+}
+function drawHole(h){
+  const cx = h.x + h.w/2, cy = world.bg === 'ocean' ? 852 : 786;
+  ctx.fillStyle = '#101826';
+  ctx.beginPath(); ctx.ellipse(cx, cy, 66, 18, 0, 0, 7); ctx.fill();
+  ctx.fillStyle = 'rgba(120,180,255,.15)';
+  ctx.beginPath(); ctx.ellipse(cx, cy, 40 + Math.sin(T * 3) * 4, 11, 0, 0, 7); ctx.fill();
+  ctx.fillStyle = '#cfe6ff'; ctx.font = 'bold 20px system-ui'; ctx.textAlign = 'center';
+  ctx.fillText('↓', cx, cy - 26 + Math.sin(T * 4) * 3);
+}
+function drawItem(icon, x, y){
+  ctx.font = '20px system-ui'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  ctx.fillText(icon, x, y + Math.sin(T * 3 + x) * 4);
+  ctx.textBaseline = 'alphabetic';
+}
+function renderWorld(){
+  ctx.clearRect(0, 0, VW, VH);
+  drawBG();
+  ctx.save();
+  ctx.translate(-cam.x, -cam.y);
+
+  for (const h of world.holes) drawHole(h);
+
+  if (world.bg === 'ocean'){
+    ctx.strokeStyle = '#2f9d5b'; ctx.lineWidth = 6; ctx.lineCap = 'round';
+    for (let sx = 120; sx < world.w; sx += 240){
+      ctx.beginPath(); ctx.moveTo(sx, 840);
+      ctx.quadraticCurveTo(sx + 12 + Math.sin(T * 2 + sx) * 12, 800, sx + Math.sin(T * 2 + sx) * 18, 760);
+      ctx.stroke();
+    }
+  }
+
+  for (const s of world.solids){ if (s.kind !== 'green' || G.flags.greenStairs) drawSolid(s); }
+
+  for (const e of world.elevators){
+    ctx.strokeStyle = '#556'; ctx.lineWidth = 3;
+    ctx.beginPath(); ctx.moveTo(e.x + 10, e.top - 60); ctx.lineTo(e.x + 10, e.y);
+    ctx.moveTo(e.x + e.w - 10, e.top - 60); ctx.lineTo(e.x + e.w - 10, e.y); ctx.stroke();
+    ctx.fillStyle = '#9fb2c2'; ctx.fillRect(e.x, e.y, e.w, e.h);
+    ctx.fillStyle = '#c9d6e2'; ctx.fillRect(e.x, e.y, e.w, 3);
+  }
+
+  world.boxes.forEach(drawBox);
+
+  world.pickups.forEach((p, i) => { if (!G.picked['pk:' + world.key + ':' + i]) drawItem(ITEMS[p.id].icon, p.x, p.y); });
+  for (const l of loose) drawItem(ITEMS[l.id].icon, l.x, l.y - 8);
+
+  for (const n of world.npcs) drawCreature(n);
+
+  drawCokco(P.x, P.y, P.face, P.walk, P.squash);
+
+  ctx.restore();
+
+  if (trans){
+    const a = trans.t < 0.32 ? trans.t / 0.32 : (0.64 - trans.t) / 0.32;
+    ctx.fillStyle = 'rgba(6,10,20,' + clamp(a, 0, 1) + ')';
+    ctx.fillRect(0, 0, VW, VH);
+  }
+}
+function drawUrchin(u){
+  const col = u.type === 'blue' ? '#4aa3ff' : u.type === 'x2' ? '#ffcf3f' : '#c65cff';
+  ctx.strokeStyle = col; ctx.fillStyle = col; ctx.lineWidth = 3; ctx.lineCap = 'round';
+  for (let a = 0; a < 10; a++){
+    const ang = a / 10 * Math.PI * 2 + T;
+    ctx.beginPath(); ctx.moveTo(u.x, u.y);
+    ctx.lineTo(u.x + Math.cos(ang) * (u.r + 6), u.y + Math.sin(ang) * (u.r + 6));
+    ctx.stroke();
+  }
+  ctx.beginPath(); ctx.arc(u.x, u.y, u.r, 0, 7); ctx.fill();
+  if (u.type === 'x2'){ ctx.fillStyle = '#3a2a00'; ctx.font = 'bold 12px system-ui'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText('x2', u.x, u.y); ctx.textBaseline = 'alphabetic'; }
+  if (u.type === 'plus'){ ctx.fillStyle = '#0a5a2a'; ctx.font = 'bold 16px system-ui'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText('+2', u.x, u.y); ctx.textBaseline = 'alphabetic'; }
+}
+function renderMinigame(){
+  const g = ctx.createLinearGradient(0, 0, 0, VH);
+  g.addColorStop(0, '#06283a'); g.addColorStop(1, '#0f5a70');
+  ctx.fillStyle = g; ctx.fillRect(0, 0, VW, VH);
+  ctx.fillStyle = 'rgba(255,255,255,.16)';
+  for (const b of mgBub){ ctx.beginPath(); ctx.arc(b.x, b.y, b.r, 0, 7); ctx.fill(); }
+
+  // bucket
+  const bkx = bucketX();
+  ctx.fillStyle = '#caa46a'; ctx.fillRect(bkx - 34, VH - 96, 68, 60);
+  ctx.fillStyle = '#8a6a44'; ctx.fillRect(bkx - 38, VH - 100, 76, 8);
+  ctx.fillStyle = '#7a3b6b';
+  const filled = Math.min(6, MG.score);
+  for (let i = 0; i < filled; i++) { ctx.beginPath(); ctx.arc(bkx - 20 + (i % 3) * 20, VH - 52 - Math.floor(i / 3) * 18, 6, 0, 7); ctx.fill(); }
+
+  for (const u of MG.urchins) drawUrchin(u);
+
+  // basket + Cokco
+  const bw = basketW(), by = basketY();
+  ctx.strokeStyle = '#d8c090'; ctx.lineWidth = 5;
+  ctx.beginPath(); ctx.arc(MG.bx, by + 6, bw / 2, Math.PI, 2 * Math.PI); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(MG.bx - bw / 2, by + 6); ctx.lineTo(MG.bx + bw / 2, by + 6); ctx.stroke();
+  ctx.fillStyle = '#7a3b6b';
+  for (let i = 0; i < MG.basket.length; i++){ ctx.beginPath(); ctx.arc(MG.bx - bw/2 + 10 + i * 12, by, 4, 0, 7); ctx.fill(); }
+  drawCokco(MG.bx - 13, by + 14, 0, held('left') || held('right') ? T * 12 : 0, 0);
+
+  // HUD
+  ctx.fillStyle = '#fff'; ctx.textAlign = 'left'; ctx.font = 'bold 20px system-ui';
+  ctx.fillText('Score  ' + MG.score + ' / ' + MG.target, 24, 40);
+  ctx.font = '16px system-ui';
+  ctx.fillText('Time  ' + Math.max(0, Math.ceil(MG.time)), 24, 66);
+  ctx.fillText('Basket  ' + MG.basket.length + ' / ' + MG.cap + '   (walk left to the bucket to bank)', 24, 88);
+  ctx.textAlign = 'center'; ctx.font = '13px system-ui'; ctx.fillStyle = 'rgba(255,255,255,.75)';
+  ctx.fillText('move ← →   ·   green +2 grows the basket   ·   blue = Blue Pearl   ·   Esc to leave', VW / 2, VH - 22);
+
+  if (MG.result){
+    ctx.fillStyle = 'rgba(6,10,20,.6)'; ctx.fillRect(0, VH / 2 - 60, VW, 120);
+    ctx.fillStyle = MG.result === 'win' ? '#8fffa8' : '#ffb3a0';
+    ctx.font = 'bold 40px system-ui'; ctx.textAlign = 'center';
+    ctx.fillText(MG.result === 'win' ? 'The water calms...' : 'They got away!', VW / 2, VH / 2 + 12);
+  }
+}
+
+/* ---------- 12. UI panels ---------- */
+const panelEl = document.getElementById('panel');
+const PANEL = {
+  bag(){
+    let slots = '';
+    for (let i = 0; i < 10; i++){
+      const s = G.inv[i];
+      slots += s
+        ? '<div class="slot"><div class="ic">' + ITEMS[s.id].icon + '</div><div>' + esc(ITEMS[s.id].name) + '</div><div class="q">x' + s.qty + '</div></div>'
+        : '<div class="slot"></div>';
+    }
+    return '<h2>Bag</h2><p style="opacity:.7;font-size:13px">10 pockets &middot; up to 20 of each</p>' +
+           '<div class="grid">' + slots + '</div>' +
+           '<button class="btn" data-act="resume">Close</button>';
+  },
+  problems(){
+    const rows = Object.keys(QUESTS).map(id => {
+      const q = QUESTS[id], st = G.quests[id], done = st === 'done';
+      let line = done ? 'Solved.'
+        : st === 'inactive' ? 'Not started — talk to the creatures.'
+        : objectiveFor(id);
+      return '<div class="qz ' + (done ? 'done' : '') + '"><b>' + esc(q.title) + '</b><div class="o">' + esc(line) + '</div></div>';
+    }).join('');
+    const all = Object.values(G.quests).every(s => s === 'done');
+    return '<h2>Problems</h2><p style="opacity:.75;font-size:13px">Goal: solve every problem the creatures tell you about.</p>' +
+      rows + (all ? '<div class="qz">Every known problem is solved. Keep exploring — more will sprout.</div>' : '') +
+      '<button class="btn" data-act="resume">Close</button>';
+  },
+  menu(){
+    return '<h2>Menu</h2>' +
+      '<button class="btn" data-act="resume">Resume</button>' +
+      '<button class="btn alt" data-act="home">Go Home</button>' +
+      '<button class="btn alt" data-act="map">Map</button>' +
+      '<button class="btn alt" data-act="reset">Reset game</button>';
+  },
+  map(){
+    const v = id => G.flags['visited_' + id] ? '' : '  (not visited)';
+    const cur = world.key;
+    return '<h2>Map</h2><p style="font-size:13px;opacity:.75">Drop-holes connect the layers.</p>' +
+      '<div style="font-size:15px;line-height:2.1;font-family:ui-monospace,Menlo,monospace">' +
+      (cur === 'home' ? '&#9654; ' : '&nbsp;&nbsp;&nbsp;') + '&#127969; Home' + v('home') + '<br>' +
+      '&nbsp;&nbsp;&nbsp;&nbsp;| drop-hole<br>' +
+      (cur === 'ocean' ? '&#9654; ' : '&nbsp;&nbsp;&nbsp;') + '&#127754; Ocean layer' + v('ocean') + '<br>' +
+      '&nbsp;&nbsp;&nbsp;&nbsp;| drop-hole<br>' +
+      '&nbsp;&nbsp;&nbsp;&nbsp;... more layers to come' +
+      '</div><button class="btn" data-act="menu">Back</button>';
+  },
+};
+function objectiveFor(id){
+  if (id === 'ocean') return G.flags.oceanCalm
+    ? 'Tell Wriggo the water is calm.'
+    : "Drop into the Ocean layer and beat Clawdia's catching challenge.";
+  if (id === 'craft') return 'Bring Crafto 3 Sea Urchins (you have ' + invCount('urchin') + ').';
+  if (id === 'pearl') return 'Catch the blue urchin, bring Sella a Blue Pearl (you have ' + invCount('blue-pearl') + ').';
+  return '';
+}
+function primaryObjective(){
+  const q = G.quests;
+  if (q.ocean === 'active') return objectiveFor('ocean');
+  if (q.ocean === 'ready') return 'Tell Wriggo the water is calm.';
+  if (q.craft === 'active') return objectiveFor('craft');
+  if (q.pearl === 'active') return objectiveFor('pearl');
+  if (Object.values(q).every(s => s === 'done')) return 'Explore — new problems will appear.';
+  return 'Talk to the creatures. They each have a problem.';
+}
+function openPanel(kind){
+  panelKind = kind; mode = 'panel';
+  panelEl.innerHTML = PANEL[kind]();
+  wirePanel();
+}
+function closePanel(){ mode = 'play'; panelKind = null; }
+function wirePanel(){
+  panelEl.querySelectorAll('[data-act]').forEach(b => {
+    b.onclick = () => {
+      const a = b.dataset.act;
+      if (a === 'resume') closePanel();
+      else if (a === 'home'){ closePanel(); travel('home', 'spawn'); }
+      else if (a === 'map'){ panelKind = 'map'; panelEl.innerHTML = PANEL.map(); wirePanel(); }
+      else if (a === 'menu'){ panelKind = 'menu'; panelEl.innerHTML = PANEL.menu(); wirePanel(); }
+      else if (a === 'reset'){
+        if (confirm('Erase your game and start over?')){
+          try { localStorage.removeItem(SAVE_KEY); } catch (e) {}
+          G = blankSave(); persist();
+          loadWorld('home'); placePlayer(world.arrivals.spawn);
+          closePanel();
+        }
+      }
+    };
+  });
+}
+
+/* ---------- 13. main loop ---------- */
+function update(){
+  T += dt;
+  toasts.forEach(x => x.t -= dt);
+  toasts = toasts.filter(x => x.t > 0);
+
+  const m0 = mode;
+  if (m0 === 'play') updatePlay();
+  else if (m0 === 'dialogue'){
+    if (key('KeyE', 'Enter', 'Space')) advanceDialogue();
+    else if (key('Escape')){ dialogue = null; mode = 'play'; }
+  }
+  else if (m0 === 'panel'){
+    if (key('Escape') || (panelKind === 'bag' && key('KeyI')) || (panelKind === 'problems' && key('KeyJ'))) closePanel();
+  }
+  else if (m0 === 'minigame') updateMinigame();
+  else if (m0 === 'transition') updateTransition();
+
+  // panel hotkeys — only when this tick began in play and is still in play
+  // (otherwise the same Esc/I/J press that closed a panel would re-open one)
+  if (m0 === 'play' && mode === 'play'){
+    if (key('KeyI')) openPanel('bag');
+    else if (key('KeyJ')) openPanel('problems');
+    else if (key('Escape')) openPanel('menu');
+  }
+
+  clearTaps();
+}
+function syncDOM(){
+  const showHud = mode === 'play' || mode === 'dialogue';
+  document.getElementById('hud').classList.toggle('hidden', !showHud);
+  document.getElementById('hint').classList.toggle('hidden', mode !== 'play');
+  document.getElementById('dialogue').classList.toggle('hidden', mode !== 'dialogue');
+  panelEl.classList.toggle('hidden', mode !== 'panel');
+
+  if (showHud && world){
+    document.getElementById('worldName').textContent = world.name;
+    document.getElementById('obj').textContent = primaryObjective();
+    document.getElementById('urch').textContent =
+      ITEMS.urchin.icon + ' ' + invCount('urchin') + ' ' + ITEMS.shell.icon + ' ' + invCount('shell');
+  }
+  if (mode === 'play') document.getElementById('hint').textContent = hintText;
+  if (mode === 'dialogue' && dialogue){
+    document.querySelector('#dialogue .who').textContent = dialogue.who;
+    document.querySelector('#dialogue .txt').textContent = dialogue.lines[dialogue.i];
+  }
+  document.getElementById('toast').innerHTML =
+    toasts.map(x => '<div class="toast" style="opacity:' + clamp(x.t, 0, 1).toFixed(2) + '">' + esc(x.m) + '</div>').join('');
+}
+function render(){
+  if (mode === 'minigame'){ renderMinigame(); return; }
+  if (world) renderWorld();
+  else ctx.clearRect(0, 0, VW, VH);
+}
+let last = performance.now();
+function frame(nowMs){
+  dt = Math.min(0.05, (nowMs - last) / 1000);
+  last = nowMs;
+  update();
+  render();
+  syncDOM();
+  requestAnimationFrame(frame);
+}
+
+/* ---------- boot ---------- */
+function beginGame(id, usePos){
+  loadWorld(id);
+  if (usePos && G.px != null) placePlayer({ x: G.px, y: G.py });
+  else placePlayer(world.arrivals.spawn);
+  document.getElementById('title').classList.add('hidden');
+  mode = 'play';
+}
+document.getElementById('playBtn').onclick = () => {
+  if (hasSave()){ G = loadGame(); beginGame(G.world || 'home', true); }
+  else { G = blankSave(); persist(); beginGame('home', false); }
+};
+document.getElementById('newBtn').onclick = () => {
+  if (hasSave() && !confirm('Start a fresh game? Your current one will be erased.')) return;
+  try { localStorage.removeItem(SAVE_KEY); } catch (e) {}
+  G = blankSave(); persist();
+  beginGame('home', false);
+};
+addEventListener('keydown', e => {
+  if (mode === 'title' && (e.code === 'Enter' || e.code === 'Space')) document.getElementById('playBtn').click();
+});
+
+resize();
+requestAnimationFrame(frame);
+</script>
+</body>
+</html>
