@@ -162,7 +162,7 @@ function resize(){
 window.addEventListener('resize', resize);
 
 const CFG = {
-  cokco: { color: '#ff9d6f', belly: '#ffd9c2', w: 26, h: 34 },  // <-- Cokco's colour: change here
+  cokco: { color: '#e4ded4', cap: '#6f6a63', w: 26, h: 34 },  // <-- Cokco: pale body + grey top cap
   step: 16,        // tallest ledge Cokco walks straight up (this is how stairs work)
   coyote: 0.10,    // grace time to still jump just after walking off an edge
   buffer: 0.12,    // press jump slightly early and it still fires on landing
@@ -783,26 +783,49 @@ function finishMinigame(){
 function makeBubbles(w){
   w._bub = Array.from({ length: 34 }, () => ({ x:rand(0, VW), y:rand(0, VH), r:rand(2, 6), s:rand(15, 45) }));
 }
+// Cokco, drawn to match Avery's picture: one round body, the top ~40% filled a
+// flat grey (not hair) with a divider line, two big oval eyes, straight stick
+// arms angled up-and-out, and two short splayed legs.
 function drawCokco(x, y, faceEyes, walk, squash){
   const w = CFG.cokco.w, h = CFG.cokco.h, cx = x + w/2, r = w/2, by = y + r + 2;
-  const sw = Math.sin(walk) * 4;
+  const sw = Math.sin(walk) * 3, aw = Math.sin(walk) * 2;
   ctx.save();
-  ctx.strokeStyle = '#3b2b22'; ctx.lineWidth = 3; ctx.lineCap = 'round';
+  ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+
+  // limbs (drawn in world coords so the squash doesn't stretch them)
+  ctx.strokeStyle = '#33302b'; ctx.lineWidth = 3;
   ctx.beginPath();
-  ctx.moveTo(cx - 5, by + r - 1); ctx.lineTo(cx - 5 + sw, y + h);
-  ctx.moveTo(cx + 5, by + r - 1); ctx.lineTo(cx + 5 - sw, y + h);
-  ctx.moveTo(cx - r + 2, by + 2); ctx.lineTo(cx - r - 5, by + 9 - sw);
-  ctx.moveTo(cx + r - 2, by + 2); ctx.lineTo(cx + r + 5, by + 9 + sw);
+  // two short splayed legs
+  ctx.moveTo(cx - r * 0.42, by + r * 0.82); ctx.lineTo(cx - r * 0.70 + sw, y + h);
+  ctx.moveTo(cx + r * 0.42, by + r * 0.82); ctx.lineTo(cx + r * 0.70 - sw, y + h);
+  // two arms, same length, at equal-and-opposite angles: right tilts up, left
+  // tilts down by the same amount.
+  const AL = 13, ca = 0.852, sa = 0.523;      // arm unit vector, ~31 deg off horizontal
+  ctx.moveTo(cx + r * ca, by - r * sa); ctx.lineTo(cx + r * ca + AL * ca - aw, by - r * sa - AL * sa);
+  ctx.moveTo(cx - r * ca, by + r * sa); ctx.lineTo(cx - r * ca - AL * ca + aw, by + r * sa + AL * sa);
   ctx.stroke();
+
   ctx.translate(cx, by);
   ctx.scale(1 - squash * 0.18, 1 + squash * 0.22);
+  const dv = -r * 0.18, hw = Math.sqrt(r * r - dv * dv);
+
   ctx.fillStyle = CFG.cokco.color;
   ctx.beginPath(); ctx.arc(0, 0, r, 0, 7); ctx.fill();
-  ctx.fillStyle = CFG.cokco.belly;
-  ctx.beginPath(); ctx.arc(0, 3, r * 0.6, 0, 7); ctx.fill();
-  ctx.fillStyle = '#20242b';
-  const ex = faceEyes * 2.5;
-  ctx.beginPath(); ctx.arc(-4 + ex, -3, 2.1, 0, 7); ctx.arc(4 + ex, -3, 2.1, 0, 7); ctx.fill();
+
+  ctx.save();                                   // grey top cap, clipped to the circle
+  ctx.beginPath(); ctx.arc(0, 0, r, 0, 7); ctx.clip();
+  ctx.fillStyle = CFG.cokco.cap;
+  ctx.fillRect(-r - 1, -r - 1, 2 * r + 2, dv + r + 1);
+  ctx.restore();
+
+  ctx.strokeStyle = '#20242b'; ctx.lineWidth = 2.4;
+  ctx.beginPath(); ctx.arc(0, 0, r, 0, 7); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(-hw, dv); ctx.lineTo(hw, dv); ctx.stroke();
+
+  ctx.fillStyle = '#242222';
+  const ex = faceEyes * 2;
+  ctx.beginPath(); ctx.ellipse(-5.4 + ex, 0.8, 2.9, 3.4, 0, 0, 7); ctx.fill();
+  ctx.beginPath(); ctx.ellipse(5.4 + ex, 0.8, 2.9, 3.4, 0, 0, 7); ctx.fill();
   ctx.restore();
 }
 function marker(n){
