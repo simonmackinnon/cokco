@@ -459,15 +459,17 @@ try {
   press('Escape'); step();
   check('bag panel closed', g().mode === 'play');
 
-  // problems panel
+  // problems panel — now a live status board
   press('KeyJ'); step();
   check('problems panel open', g().mode === 'panel');
+  check('problems board shows a solved count', /\d+ \/ \d+ solved/.test(getEl('panel').innerHTML));
   press('KeyJ'); step();
   check('problems panel closed', g().mode === 'play');
 
   // menu panel + Esc must actually close it (regression: used to re-open)
   press('Escape'); step();
   check('menu panel open', g().mode === 'panel');
+  check('menu offers the Problems view', getEl('panel').innerHTML.includes('data-act="problems"'));
   press('Escape'); step();
   check('menu panel closed with Esc', g().mode === 'play');
 

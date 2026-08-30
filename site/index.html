@@ -686,6 +686,7 @@ let dialogue = null;
 let MG = null;
 let trans = null;
 let panelKind = null;
+let problemsFromMenu = false;   // true when the Problems board was opened from the menu (Back vs Close)
 let hintText = '';
 let toasts = [];
 let saveTick = 0;
@@ -2048,6 +2049,10 @@ function renderMinigame(){
 
 /* ---------- 12. UI panels ---------- */
 const panelEl = document.getElementById('panel');
+function questGiverWorld(giver){
+  for (const k in WORLDS) if ((WORLDS[k].npcs || []).some(n => n.name === giver)) return WORLDS[k].name;
+  return '';
+}
 const PANEL = {
   bag(){
     let slots = '';
@@ -2093,23 +2098,37 @@ const PANEL = {
     return '<h2>' + esc(shopNPC.name) + "&rsquo;s shop</h2>" + rows + '<button class="btn alt" data-act="resume">Leave</button>';
   },
   problems(){
-    const rows = Object.keys(QUESTS).map(id => {
-      const q = QUESTS[id], st = G.quests[id], done = st === 'done';
-      let line = done ? 'Solved.'
-        : st === 'inactive' ? 'Not started — talk to the creatures.'
-        : objectiveFor(id);
-      return '<div class="qz ' + (done ? 'done' : '') + '"><b>' + esc(q.title) + '</b><div class="o">' + esc(line) + '</div></div>';
-    }).join('');
-    const all = Object.values(G.quests).every(s => s === 'done');
-    return '<h2>Problems</h2><p style="opacity:.75;font-size:13px">Goal: solve every problem the creatures tell you about.</p>' +
-      rows + (all ? '<div class="qz">Every known problem is solved. Keep exploring — more will sprout.</div>' : '') +
-      '<button class="btn" data-act="resume">Close</button>';
+    const ids = Object.keys(QUESTS);
+    const solved = ids.filter(id => G.quests[id] === 'done').length;
+    const total = ids.length;
+    const pct = Math.round(solved / total * 100);
+    const grp = { active: [], inactive: [], done: [] };
+    for (const id of ids){
+      const q = QUESTS[id], st = G.quests[id];
+      const bucket = st === 'done' ? 'done' : st === 'inactive' ? 'inactive' : 'active';
+      const where = '<div class="o">' + esc(q.giver) + ' &middot; ' + esc(questGiverWorld(q.giver)) + '</div>';
+      const obj = bucket === 'active' ? '<div class="o">' + esc(objectiveFor(id) || 'In progress.') + '</div>' : '';
+      grp[bucket].push('<div class="qz ' + (bucket === 'done' ? 'done' : '') + '"><b>' + esc(q.title) + '</b>' + where + obj + '</div>');
+    }
+    const section = (label, arr) => arr.length
+      ? '<div style="opacity:.65;font-size:12px;letter-spacing:.5px;margin:12px 0 2px">' + label.toUpperCase() + '</div>' + arr.join('')
+      : '';
+    const bar = '<div style="height:8px;border-radius:6px;background:rgba(255,255,255,.12);overflow:hidden;margin:8px 0 2px">' +
+      '<div style="height:100%;width:' + pct + '%;background:#8fd3ff;transition:width .2s"></div></div>';
+    const back = problemsFromMenu ? 'menu' : 'resume';
+    return '<h2>Problems &mdash; ' + solved + ' / ' + total + ' solved</h2>' + bar +
+      section('In progress', grp.active) +
+      section('Not started', grp.inactive) +
+      section('Solved', grp.done) +
+      (solved === total ? '<div class="qz">Every known problem is solved. Keep exploring &mdash; more will sprout.</div>' : '') +
+      '<button class="btn" data-act="' + back + '">' + (problemsFromMenu ? 'Back' : 'Close') + '</button>';
   },
   menu(){
     return '<h2>Menu</h2>' +
       '<button class="btn" data-act="resume">Resume</button>' +
-      '<button class="btn alt" data-act="home">Go Home</button>' +
+      '<button class="btn alt" data-act="problems">Problems</button>' +
       '<button class="btn alt" data-act="map">Map</button>' +
+      '<button class="btn alt" data-act="home">Go Home</button>' +
       '<button class="btn alt" data-act="reset">Reset game</button>';
   },
   map(){
@@ -2170,7 +2189,7 @@ function setPanel(kind){
   wirePanel();
   paintPanelArt();
 }
-function openPanel(kind){ mode = 'panel'; setPanel(kind); }
+function openPanel(kind){ mode = 'panel'; problemsFromMenu = false; setPanel(kind); }
 function closePanel(){ mode = 'play'; panelKind = null; }
 function paintPanelArt(){
   panelEl.querySelectorAll('canvas[data-art]').forEach(cv => {
@@ -2193,6 +2212,7 @@ function wirePanel(){
       if (a === 'resume') closePanel();
       else if (a === 'home'){ closePanel(); travel('home', 'spawn'); }
       else if (a === 'map') setPanel('map');
+      else if (a === 'problems'){ problemsFromMenu = true; setPanel('problems'); }
       else if (a === 'menu') setPanel('menu');
       else if (a.startsWith('craft:')){ craftRecipe(a.slice(6)); setPanel('craft'); }
       else if (a.startsWith('door:')){ const i = +a.slice(5); closePanel(); doorWarp(doorChoices[i]); }
