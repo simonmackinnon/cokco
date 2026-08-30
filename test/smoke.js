@@ -13,7 +13,7 @@ const code = html.match(/<script>([\s\S]*?)<\/script>/)[1] + `
   get G(){return G}, get MG(){return MG}, get trans(){return trans},
   get panelKind(){return panelKind}, get doorChoices(){return doorChoices},
   get FORMS(){return FORMS},
-  invAdd, invCount, invRemove, travel, startMinigame, craftRecipe, dayFactor,
+  invAdd, invCount, invRemove, travel, startMinigame, craftRecipe, dayFactor, buyFromShop,
 };`;
 
 // ---- fake canvas 2d context ----
@@ -292,6 +292,131 @@ try {
   g().P.x = 150; g().P.y = 700;
   for (let k = 0; k < 3 && g().P.form !== 'normal'; k++) { press('KeyQ'); step(); }
   check('cycled Cokco back to normal form', g().P.form === 'normal');
+
+  // ================= round 4 =================
+  g().travel('home', 'spawn');
+  for (let i = 0; i < 40; i++) step();
+
+  // --- placeable Sea Urchin Blocks (press B) ---
+  g().invAdd('urchin-block', 2);
+  const nBlkBefore = g().invCount('urchin-block');
+  g().P.x = 1000; g().P.y = 700; g().P.vx = 0; g().P.vy = 0; g().P.face = 1;
+  for (let i = 0; i < 12; i++) step();               // settle on the ground
+  press('KeyB'); step();
+  check('pressing B places a block (leaves the bag)', g().invCount('urchin-block') === nBlkBefore - 1);
+  check('the placed block is a solid', (g().G.placed.home || []).length === 1);
+  press('KeyB'); step();
+  check('pressing B by a placed block picks it back up', g().invCount('urchin-block') === nBlkBefore && (g().G.placed.home || []).length === 0);
+
+  // --- gacha machine: needs a Cokco Card, and (this one) a Battery ---
+  const gacha = g().world.machines.find(m => m.kind === 'gacha');
+  g().P.x = gacha.x - g().P.w / 2; g().P.y = gacha.y - g().P.h; step();
+  const inv0 = g().invCount('urchin') + g().invCount('shell') + g().invCount('urchin-block')
+             + g().invCount('battery') + g().invCount('lantern') + g().invCount('blue-pearl') + g().G.coins + g().G.gems;
+  press('KeyE'); step();
+  check('gacha refuses with no card', g().invCount('orb-card') === 0 && g().mode === 'play');
+  g().invAdd('orb-card', 2); g().invAdd('battery', 3);   // plenty
+  const cardBefore = g().invCount('orb-card');
+  press('KeyE'); step();
+  check('gacha consumes the Cokco Card', g().invCount('orb-card') === cardBefore - 1 && g().mode === 'play');
+
+  // --- shops in the Dirt layer: buy a block, then go gold mining ---
+  const cellar = g().world.doors.find(d => d.target === 'dirt');
+  g().P.x = cellar.x - g().P.w / 2; g().P.y = cellar.y - g().P.h; step();
+  press('KeyE'); step();
+  for (let i = 0; i < 45; i++) step();
+  check('entered the Dirt layer', g().world.key === 'dirt');
+  g().G.coins += 30;
+  const blok = g().world.npcs.find(n => n.name === 'Blok');
+  g().P.x = blok.x - g().P.w / 2; g().P.y = blok.y - g().P.h; step();
+  press('KeyE'); step();
+  check('Blok opens a shop panel', g().mode === 'panel' && g().panelKind === 'shop');
+  const coinsBeforeBuy = g().G.coins, blkBeforeBuy = g().invCount('urchin-block');
+  g().buyFromShop(0);   // buy the first stock item (a Sea Urchin Block, 4 coins)
+  check('buying a block spends coins and fills the bag',
+    g().invCount('urchin-block') === blkBeforeBuy + 1 && g().G.coins === coinsBeforeBuy - 4);
+  press('Escape'); step();
+  check('left the shop panel', g().mode === 'play');
+
+  const nugget = g().world.npcs.find(n => n.name === 'Nugget');
+  g().P.x = nugget.x - g().P.w / 2; g().P.y = nugget.y - g().P.h; step();
+  const goldBefore = g().G.gold, coinsBeforeMine = g().G.coins;
+  press('KeyE'); step();
+  for (let i = 0; i < 4; i++) { press('KeyE'); step(); }
+  check('mining spent coins and yielded gold', g().G.gold > goldBefore && g().G.coins < coinsBeforeMine);
+
+  // --- Water-Works: door from the Ocean layer; the block quest is reachable ---
+  g().travel('ocean', 'fromHome');
+  for (let i = 0; i < 40; i++) step();
+  const museum = g().world.doors.find(d => d.target === 'waterworks');
+  g().P.x = museum.x - g().P.w / 2; g().P.y = museum.y - g().P.h; step();
+  press('KeyE'); step();
+  for (let i = 0; i < 45; i++) step();
+  check('entered the Water-Works', g().world.key === 'waterworks');
+  const fossil = g().world.pickups.find(p => p.id === 'urchin-fossil');
+  g().P.x = fossil.x - 6; g().P.y = fossil.y - g().P.h; step();
+  for (let i = 0; i < 6; i++) step();
+  check('grabbing the shelf fossil works', g().invCount('urchin-fossil') === 1);
+
+  g().travel('home', 'spawn');
+  for (let i = 0; i < 40; i++) step();
+
+  // ================= SECRET LAYER: the Beach =================
+  const secretDoor = g().world.doors.find(d => d.target === 'beach');
+  check('a secret door to the Beach exists', !!secretDoor);
+  g().travel('beach', 'spawn');
+  for (let i = 0; i < 45; i++) step();
+  check('entered the Secret Beach', g().world.key === 'beach');
+
+  // --- orb-chest at the shore gives the Snake Orb ---
+  const orbChest = g().world.orbChests[0];
+  g().P.x = orbChest.x - g().P.w / 2; g().P.y = orbChest.y - g().P.h; step();
+  press('KeyE'); step();
+  check('opening the orb-chest unlocks the Snake Orb', g().G.orbs.snake === true);
+
+  // --- snake form climbs the cliff wall ---
+  const wall = g().world.solids.find(s => s.kind === 'wall' && s.x > 1000 && s.x < 1800);
+  press('KeyQ'); step();                                   // cycle to an orb form...
+  for (let k = 0; k < 4 && g().P.form !== 'snake'; k++) { press('KeyQ'); step(); }
+  check('became snake form', g().P.form === 'snake');
+  g().P.x = wall.x - g().P.w - 1; g().P.y = wall.y + wall.h - g().P.h - 4; g().P.vx = 0; g().P.vy = 0; g().P.face = 1;
+  step();
+  const climbY0 = g().P.y;
+  press('ArrowRight'); press('ArrowUp');
+  for (let i = 0; i < 120; i++) step();
+  release('ArrowRight'); release('ArrowUp');
+  check('holding into the wall + up climbs it', g().P.y < climbY0 - 200);
+  // step onto the cliff-top ledge and grab the kite
+  g().P.x = 1190; g().P.y = 150; g().P.vx = 0; g().P.vy = 0;
+  for (let i = 0; i < 8; i++) step();
+  check('grabbed the kite on the cliff top', g().invCount('kite') === 1);
+
+  // --- Sandy's double reward: 10 coins + the Flying Orb ---
+  const coinsPreKite = g().G.coins;
+  for (let k = 0; k < 6 && g().P.form !== 'normal'; k++) { press('KeyQ'); step(); }
+  const sandy = g().world.npcs.find(n => n.name === 'Sandy');
+  g().P.x = sandy.x - g().P.w / 2; g().P.y = sandy.y - g().P.h; step();
+  press('KeyE'); step();                    // accept the quest...
+  for (let i = 0; i < 12; i++) { press('KeyE'); step(); }   // ...then turn in the kite
+  press('Escape'); step();                  // make sure we're back in play
+  check('Sandy pays 10 Cokco-coins', g().G.coins === coinsPreKite + 10);
+  check('Sandy unlocks the Flying Orb', g().G.orbs.fly === true);
+  check('the climb quest is solved', g().G.quests.climb === 'done');
+
+  // --- fly form rises when you hold up ---
+  g().P.x = 300; g().P.y = 560; g().P.vx = 0; g().P.vy = 0;
+  for (let i = 0; i < 20; i++) step();      // land on the sand
+  for (let k = 0; k < 8 && g().P.form !== 'fly'; k++) { press('KeyQ'); step(); }
+  check('became fly form', g().P.form === 'fly');
+  const flyY0 = g().P.y;
+  press('ArrowUp');
+  for (let i = 0; i < 40; i++) step();
+  release('ArrowUp');
+  check('holding up flies upward', g().P.y < flyY0 - 40);
+
+  g().travel('home', 'spawn');
+  for (let i = 0; i < 40; i++) step();
+  for (let k = 0; k < 6 && g().P.form !== 'normal'; k++) { press('KeyQ'); step(); }
 
   // bag panel
   press('KeyI'); step();

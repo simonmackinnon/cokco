@@ -69,21 +69,36 @@ tracks what the code does so far.
 | Sea-Urchin Flattening Centre — enter, talk to a *moving* NPC named **Sxco**, he flattens urchins at his machine | new `flatten` world reached by a `target` door at Home; `npcs[].patrol` makes Sxco pace; `talkTo` `action:'flatten'` → `flattenUrchin()` (Sea Urchin → Flat Urchin) |
 | Put the flat urchin in a card; scan the card at a special machine → a new orb | `RECIPES` `orb-card` (Flat Urchin + 2 coins); `machines` `kind:'scanner'` + `scanCard()` → unlocks the next orb (Slime first). Different scanners could grant different orbs later |
 
+## Avery's round-4 feedback (built)
+
+| Feedback | In the game |
+| --- | --- |
+| Sea Urchin Blocks you can *place*, jump on, and use to reach high places | `toggleBlock()` on `B` — grid-snapped block in front of Cokco, `kind:'placed'` solid, stored in `G.placed[world]`, `B` again picks it up. `drawUrchinBlock()` for the visual |
+| NPC problem only solvable with a placed block | quest `block` — Curato in the Water-Works; stack blocks to a `ledge` at y496 (far above any jump) for the Urchin Fossil |
+| Water-Works layer — a water museum + fun-park | `WORLDS.waterworks` (`bg:'waterworks'` — exhibit tanks, a spinning fun-park wheel); door from the Ocean layer |
+| Dirt layer — a tunnel to shops; buy blocks with coins; a gold-mining shop | `WORLDS.dirt` (`bg:'dirt'` — a `kind:'dirt'` ceiling forms the low tunnel, torch glows in the cavern). **Blok** `action:'shop'` (`PANEL.shop` + `buyFromShop()`); **Nugget** `action:'mine'` → `goMining()` pays coins for `G.gold` |
+| Machines that take a Cokco card for a random item; some need a battery | `machines` `kind:'gacha'` + `needsBattery` → `useMachine()` / `weightedPick()`. `battery` item (also drops from chests, sold by Blok). `grant()` routes prizes to the bag or a counter |
+
+## Avery's round-5 feedback (built)
+
+| Feedback | In the game |
+| --- | --- |
+| Secret Beach layer | `WORLDS.beach` (`bg:'beach'`) — reached by a `target` door at Home that only exists **behind the smashed boulder** (the boulder is now too tall to jump) |
+| Snake orb from an orb-chest as soon as you enter | `orbChests: [{x,y,orb:'snake'}]` at the shore; `openChest()` handles `o.orbId` → `G.orbs[orb]=true`. `drawOrbChest()` (glowing) |
+| Snake orb climbs walls | `FORMS.snake` (thin) + the `climbing` branch of `updatePlay()` — `P.touchWall` (set in `moveX`) + hold ↑/↓; tap jump to hop off. `drawCokco()` snake branch |
+| NPC problem only solvable by climbing | quest `climb` — Sandy's kite on a `wall` + `ledge` 490px up the cliff |
+| Two rewards on solving: 10 coins + a flying orb | `QUEST_HOOKS.climb.reward` — `G.coins += 10` **and** `G.orbs.fly = true`. `FORMS.fly` = hold ↑ to soar (reduced gravity); `drawCokco()` fly branch (wings) |
+
 ## Roadmap (not built yet)
 
 - **Two-player** — split input (P2 on `IJKL` or a gamepad), shared screen or
   drop-in co-op. The blue page starts this thought but doesn't finish it.
 - **More orbs** — the system takes a name in `FORMS` + a `G.orbs` flag + a
-  `drawCokco` branch; wire each to a new `kind:` of solid or interaction.
-- **Placing blocks** — the Sea Urchin Block is craftable but can't be placed yet.
-- **Inter-world doors everywhere** (only the Flattening Centre uses one so far) and
-  **bootstrap-obtained crafting tables** (craft / buy / find).
-- **More layers** — the design says the worlds go on forever. Add `WORLDS` entries
-  and chain drop-holes. Each new worm/NPC adds a problem.
-- **Deeper crafting chains** — recipes that need items from several challenges;
-  a "keep" / storage NPC (the pink/grid notes hint at "sell" and "make ticks").
-- **More challenge types** — not just catching; timed platforming, find-the-thing,
-  simple boss patterns.
+  `drawCokco` branch + (usually) a new solid `kind:`; add to `ORB_ORDER`.
+- **More layers** — worlds go on forever. Add `WORLDS` entries + a drop-hole or a
+  `target` door. Each new NPC adds a problem.
+- **Deeper crafting chains** — recipes that need items from several challenges.
+- **More challenge types** — timed platforming, find-the-thing, simple bosses.
 - **Sound** — a few short blips (jump, collect, box-pop, win) via WebAudio.
 
 ## Shape of the code

@@ -16,15 +16,16 @@ That's the whole game. Progress saves automatically in that browser.
 | --- | --- |
 | Walk | `←` `→` or `A` `D` |
 | Jump / swim up (in water) | `↑` / `W` / `Space` |
-| Talk / open / smash / scan | `E` |
+| Talk / open / smash / scan / buy | `E` |
 | Change Cokco-orb form | `Q` |
+| Place / take a Sea Urchin Block | `B` |
 | Bag (inventory) | `I` |
 | Problems (quest log) | `J` |
 | Menu (Go Home, Map, Reset) | `Esc` |
 
 On a phone/tablet, on-screen buttons appear automatically (move ◀ ▶, jump ▲,
-talk **E**, 🎒 📋 ☰, and a form-change button once you have an orb). Add
-`?touch=1` to the URL to force them on a desktop.
+talk **E**, 🎒 📋 ☰, plus form-change and block-place buttons once you have an
+orb / a block). Add `?touch=1` to the URL to force them on a desktop.
 
 ## What's in this first version
 
@@ -48,8 +49,24 @@ talk **E**, 🎒 📋 ☰, and a form-change button once you have an orb). Add
   Scanner**. More orbs later.
 - **Swimming** (Ocean layer) — press up to float up for ~5 seconds, then left/right
   to glide. Marlo needs his Spyglass off a pillar you can only reach by swimming.
-- **Chests** hold Cokco-coins (rarely a gem). **Gem boxes** are rare and always
-  hold gems.
+- **Six layers now.** Home · Ocean · Flattening Centre · **Water-Works** (a water
+  museum + fun-park, door in the Ocean layer) · **Dirt layer** (a tunnel to a
+  cavern of shops — the Cellar door at Home) · **a secret one** behind the
+  smashed boulder.
+- **Placeable Sea Urchin Blocks** — press `B` to set a block down in front of you,
+  jump on it, stack a staircase to high places. Press `B` by one to pick it up.
+  Curato at the Water-Works needs blocks stacked to a top shelf.
+- **Shops** (Dirt layer) — **Blok** sells Sea Urchin Blocks and Batteries for
+  Cokco-coins; **Nugget** takes coins to send you gold-mining.
+- **Machines** — a **scanner** turns an Orb Card into a new orb; a **gacha**
+  machine takes an Orb Card (and, for most of them, a **Battery**) and spits out a
+  random item.
+- **More Cokco-orbs.** **Snake** climbs walls (become the snake with `Q`, press
+  into a wall and hold up). **Fly** lets you hold up to soar. The snake orb is in
+  an orb-chest on the secret beach; solving Sandy's kite puzzle there pays out 10
+  coins **and** the flying orb.
+- **Chests** hold Cokco-coins (rarely a gem or a Battery). **Gem boxes** always
+  hold gems. **Orb-chests** hold a Cokco-orb.
 - **Day & night** follow your device's real clock — full day ~07–19, full night
   ~21–05, with dusk/dawn in between. A **Lantern** in your bag softens the dark.
 - **NPCs that stand still and give you problems to solve.** The goal is to solve
