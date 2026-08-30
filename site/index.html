@@ -405,7 +405,7 @@ const WORLDS = {
     name: 'Home', bg: 'home', w: 2800, h: 1050,
     gravity: 1300, jump: -430, maxFall: 900,
     arrivals: { spawn: {x:120, y:690}, fromOcean: {x:160, y:-50, vy:220},
-                fromFlatten: {x:150, y:690}, fromDirt: {x:1300, y:690}, fromBeach: {x:2690, y:690} },
+                fromFlatten: {x:150, y:690}, fromBeach: {x:2690, y:690} },
     solids: [
       { x:0,    y:770, w:1922, h:280, kind:'ground' },
       { x:2040, y:770, w:760,  h:280, kind:'ground' },
@@ -435,7 +435,6 @@ const WORLDS = {
     holes: [ { x:1916, y:900, w:132, h:130, target:'ocean', arrival:'fromHome' } ],
     tables: [ { x:1710, y:770 } ],
     doors:  [ { x:96, y:770, target:'flatten', arrival:'spawn', label:'Centre' },
-              { x:1300, y:770, target:'dirt', arrival:'spawn', label:'Cellar' },
               { x:2720, y:770, target:'beach', arrival:'spawn', label:'?' },   // secret - behind the boulder
               { x:900, y:770 }, { x:1490, y:770 }, { x:2360, y:770 } ],
     chests: [ { x:360, y:770 }, { x:1180, y:770 }, { x:2120, y:770 }, { x:2640, y:770 } ], // #3 walled off by the boulder
@@ -454,7 +453,8 @@ const WORLDS = {
   ocean: {
     name: 'Ocean layer', bg: 'ocean', w: 2500, h: 1100,
     gravity: 650, jump: -380, maxFall: 520, floaty: true,
-    arrivals: { fromHome: {x:150, y:210, vy:200}, spawn: {x:150, y:760}, fromMuseum: {x:1240, y:780} },
+    arrivals: { fromHome: {x:150, y:210, vy:200}, spawn: {x:150, y:760},
+                fromMuseum: {x:1240, y:780}, fromDirt: {x:460, y:800} },
     solids: [
       { x:0,    y:840, w:2158, h:260, kind:'sand' },
       { x:2280, y:840, w:220,  h:260, kind:'sand' },
@@ -482,7 +482,8 @@ const WORLDS = {
     holes: [ { x:2160, y:980, w:130, h:130, target:'home', arrival:'fromOcean' } ],
     tables: [ { x:1640, y:840 } ],
     doors:  [ { x:220, y:840 }, { x:1400, y:840 },
-              { x:1120, y:840, target:'waterworks', arrival:'spawn', label:'Museum' } ],
+              { x:1120, y:840, target:'waterworks', arrival:'spawn', label:'Museum' },
+              { x:460, y:840, target:'dirt', arrival:'spawn', label:'Cave' } ],
     chests: [ { x:1050, y:700 }, { x:1930, y:840 } ],
     gemBoxes: [],
     machines: [ { x:1230, y:700, kind:'scanner' } ],   // on the coral ledge - scan an Orb Card here
@@ -557,7 +558,7 @@ const WORLDS = {
     ],
     elevators: [], boxes: [], gemBoxes: [], holes: [], tables: [],
     pickups: [ { x:1710, y:184, id:'cave-crystal' } ],   // up on the high ledge
-    doors:   [ { x:60, y:600, target:'home', arrival:'fromDirt', label:'Up' } ],
+    doors:   [ { x:60, y:600, target:'ocean', arrival:'fromDirt', label:'Sea' } ],
     chests:  [ { x:1980, y:600 } ],
     machines:[ { x:1520, y:600, kind:'gacha', needsBattery: false } ],  // this one runs on nothing but a card
     npcs: [
@@ -2119,10 +2120,10 @@ const PANEL = {
       ' <span style="opacity:.55;font-size:13px">' + note + '</span>';
     const rows = [
       row('home', '&#127969;', '— hub; doors to the Centre &amp; the Cellar'),
-      row('ocean', '&#127754;', '— drop-hole in Home; a door to the Museum'),
+      row('ocean', '&#127754;', '— drop-hole in Home; doors to the Museum &amp; the Cave'),
       row('flatten', '&#128295;', '— door in Home; Sxco flattens urchins'),
       row('waterworks', '&#127993;', '— door in the Ocean layer'),
-      row('dirt', '&#9935;', '— Cellar door in Home; shops &amp; gold'),
+      row('dirt', '&#9935;', '— Cave door in the Ocean layer; shops &amp; gold'),
     ];
     if (G.flags.visited_beach) rows.push(row('beach', '&#127958;', '— SECRET; a door behind the smashed boulder'));
     return '<h2>Map</h2><p style="font-size:13px;opacity:.75">Drop-holes and doors connect the layers.</p>' +

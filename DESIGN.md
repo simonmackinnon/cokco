@@ -76,7 +76,7 @@ tracks what the code does so far.
 | Sea Urchin Blocks you can *place*, jump on, and use to reach high places | `toggleBlock()` on `B` — grid-snapped block in front of Cokco, `kind:'placed'` solid, stored in `G.placed[world]`, `B` again picks it up. `drawUrchinBlock()` for the visual |
 | NPC problem only solvable with a placed block | quest `block` — Curato in the Water-Works; stack blocks to a `ledge` at y496 (far above any jump) for the Urchin Fossil |
 | Water-Works layer — a water museum + fun-park | `WORLDS.waterworks` (`bg:'waterworks'` — exhibit tanks, a spinning fun-park wheel); door from the Ocean layer |
-| Dirt layer — a tunnel to shops; buy blocks with coins; a gold-mining shop | `WORLDS.dirt` (`bg:'dirt'` — a `kind:'dirt'` ceiling forms the low tunnel, torch glows in the cavern). **Blok** `action:'shop'` (`PANEL.shop` + `buyFromShop()`); **Nugget** `action:'mine'` → `goMining()` pays coins for `G.gold` |
+| Dirt layer — a tunnel to shops; buy blocks with coins; a gold-mining shop | `WORLDS.dirt` (`bg:'dirt'` — a `kind:'dirt'` ceiling forms the low tunnel, torch glows in the cavern), reached by a **Cave door in the Ocean layer**. **Blok** `action:'shop'` (`PANEL.shop` + `buyFromShop()`); **Nugget** `action:'mine'` → `goMining()` pays coins for `G.gold`. Also a fly-only quest `dirtfly` (Pip's Cave Crystal on a high ledge) |
 | Machines that take a Cokco card for a random item; some need a battery | `machines` `kind:'gacha'` + `needsBattery` → `useMachine()` / `weightedPick()`. `battery` item (also drops from chests, sold by Blok). `grant()` routes prizes to the bag or a counter |
 
 ## Avery's round-5 feedback (built)

@@ -320,12 +320,14 @@ try {
   press('KeyE'); step();
   check('gacha consumes the Cokco Card', g().invCount('orb-card') === cardBefore - 1 && g().mode === 'play');
 
-  // --- shops in the Dirt layer: buy a block, then go gold mining ---
-  const cellar = g().world.doors.find(d => d.target === 'dirt');
-  g().P.x = cellar.x - g().P.w / 2; g().P.y = cellar.y - g().P.h; step();
+  // --- shops in the Dirt layer, reached by the Cave door in the Ocean layer ---
+  g().travel('ocean', 'spawn');
+  for (let i = 0; i < 45; i++) step();
+  const cave = g().world.doors.find(d => d.target === 'dirt');
+  g().P.x = cave.x - g().P.w / 2; g().P.y = cave.y - g().P.h; step();
   press('KeyE'); step();
   for (let i = 0; i < 45; i++) step();
-  check('entered the Dirt layer', g().world.key === 'dirt');
+  check('entered the Dirt layer via the Ocean Cave door', g().world.key === 'dirt');
   g().G.coins += 30;
   const blok = g().world.npcs.find(n => n.name === 'Blok');
   g().P.x = blok.x - g().P.w / 2; g().P.y = blok.y - g().P.h; step();

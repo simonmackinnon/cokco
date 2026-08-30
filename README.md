@@ -51,8 +51,8 @@ orb / a block). Add `?touch=1` to the URL to force them on a desktop.
   to glide. Marlo needs his Spyglass off a pillar you can only reach by swimming.
 - **Six layers now.** Home · Ocean · Flattening Centre · **Water-Works** (a water
   museum + fun-park, door in the Ocean layer) · **Dirt layer** (a tunnel to a
-  cavern of shops — the Cellar door at Home) · **a secret one** behind the
-  smashed boulder.
+  cavern of shops — the Cave door in the Ocean layer) · **a secret one** behind
+  the smashed boulder.
 - **Placeable Sea Urchin Blocks** — press `B` to set a block down in front of you,
   jump on it, stack a staircase to high places. Press `B` by one to pick it up.
   Curato at the Water-Works needs blocks stacked to a top shelf.
