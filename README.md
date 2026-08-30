@@ -47,8 +47,8 @@ orb / a block). Add `?touch=1` to the URL to force them on a desktop.
   Hammer Orb from Boulda; make a Slime Orb at the Flattening Centre — Sxco flattens
   a Sea Urchin, you craft it into an **Orb Card**, then scan the card at an **Orb
   Scanner**. More orbs later.
-- **Swimming** (Ocean layer) — press up to float up for ~5 seconds, then left/right
-  to glide. Marlo needs his Spyglass off a pillar you can only reach by swimming.
+- **Swimming** (Ocean layer) — tap up for a short kick upward; keep tapping to
+  climb. Marlo needs his Spyglass off a pillar you can only reach by swimming.
 - **Six layers now.** Home · Ocean · Flattening Centre · **Water-Works** (a water
   museum + fun-park, door in the Ocean layer) · **Dirt layer** (a tunnel to a
   cavern of shops — the Cave door in the Ocean layer) · **a secret one** behind

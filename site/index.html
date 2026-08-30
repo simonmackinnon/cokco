@@ -635,9 +635,9 @@ const QUESTS = {
   swim: {
     title: "Marlo's spyglass", giver: 'Marlo',
     offer: ["I left my Spyglass up on the lookout pillar and I can't climb it.",
-            "Down here you SWIM: press up to float for 5 seconds, then left/right to glide.",
+            "Down here you SWIM: tap up for a little kick upward - keep tapping to climb.",
             "Swim up the pillar, grab the Spyglass, bring it back?"],
-    active: ["Swim up the tall pillar (press up to float) and fetch my Spyglass."],
+    active: ["Swim up the tall pillar (keep tapping up) and fetch my Spyglass."],
     turnin: ["My Spyglass! You're a natural swimmer. Here, take these shells."],
     done:   ["I can see the whole layer again. Thanks."],
   },
@@ -860,9 +860,9 @@ function updatePlay(){
 
   // walk
   const dir = (held('right') ? 1 : 0) - (held('left') ? 1 : 0);
-  const swimming = w.floaty && P.floatT > 0;
+  const swimming = w.floaty && !P.grounded;      // floaty, off the sand -> water handling
   if (dir !== 0){ P.vx += dir * (swimming ? 1100 : 1600) * dt; P.face = dir; }
-  const drag = P.grounded ? 1800 : swimming ? 260 : 700;
+  const drag = P.grounded ? 1800 : swimming ? 300 : 700;
   if (dir === 0 || Math.sign(dir) !== Math.sign(P.vx)){
     const s = Math.sign(P.vx);
     P.vx -= s * drag * dt;
@@ -887,10 +887,10 @@ function updatePlay(){
     else P.vy += w.gravity * dt * 0.28;
     P.vy = clamp(P.vy, -260, 210);
   } else if (w.floaty){
-    // swimming: press up to float up for 5s, then drift slowly down
-    if (tapped('jump')) P.floatT = 5;
+    // swimming: each press of up is a ~0.5s kick upward - keep tapping to climb
+    if (tapped('jump')) P.floatT = 0.5;
     P.floatT = Math.max(0, P.floatT - dt);
-    if (P.floatT > 0) P.vy += (-135 - P.vy) * Math.min(1, dt * 5);   // buoyant rise
+    if (P.floatT > 0) P.vy += (-165 - P.vy) * Math.min(1, dt * 9);   // upward kick
     else { P.vy += w.gravity * dt * 0.55; if (P.vy > 300) P.vy = 300; }
   } else {
     // jump with coyote-time + input buffer, and variable height
@@ -2142,7 +2142,7 @@ function objectiveFor(id){
     : 'Press Q for hammer form, then press E by the boulder to smash it.';
   if (id === 'swim') return invCount('spyglass') >= 1
     ? "Take Marlo's Spyglass back to him."
-    : 'Swim up the tall pillar (press up to float) and grab the Spyglass.';
+    : 'Swim up the tall pillar (keep tapping up) and grab the Spyglass.';
   if (id === 'slime') return G.picked['pk:ocean:0']
     ? 'Tell Nook what was behind the crack.'
     : 'Get a Slime Orb (Sxco → Orb Card → scan it), then ooze through the crack.';

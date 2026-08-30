@@ -64,7 +64,7 @@ tracks what the code does so far.
 | --- | --- |
 | Cokco-orbs — transform into an element/thing (slime, hammer, …) | `FORMS` + `cycleForm()` (`Q` / touch button). **slime** shrinks the body & skips `kind:'tight'` solids; **hammer** smashes `kind:'rock'` solids on `E`. `drawCokco()` branches per form. More orbs = add to `FORMS` + a `G.orbs` flag |
 | Challenges/NPC problems that need the orbs | quests `hammer` (Boulda → Hammer Orb → smash the boulder) and `slime` (Nook → the sealed crack) |
-| Swimming — press up to float up 5s, then left/right to swim | the `w.floaty` branch of `updatePlay()` — `P.floatT` buoyancy, wider horizontal control, gentle sink otherwise |
+| Swimming — tap up for a ~0.5s kick upward, keep tapping to climb | the `w.floaty` branch of `updatePlay()` — each `tapped('jump')` sets `P.floatT = 0.5`; a strong upward ease while it lasts, gentle sink otherwise; wider horizontal control |
 | NPC problem only solvable by swimming | quest `swim` (Marlo's Spyglass, atop a pillar higher than any jump) |
 | Sea-Urchin Flattening Centre — enter, talk to a *moving* NPC named **Sxco**, he flattens urchins at his machine | new `flatten` world reached by a `target` door at Home; `npcs[].patrol` makes Sxco pace; `talkTo` `action:'flatten'` → `flattenUrchin()` (Sea Urchin → Flat Urchin) |
 | Put the flat urchin in a card; scan the card at a special machine → a new orb | `RECIPES` `orb-card` (Flat Urchin + 2 coins); `machines` `kind:'scanner'` + `scanCard()` → unlocks the next orb (Slime first). Different scanners could grant different orbs later |

@@ -273,10 +273,11 @@ try {
   for (let i = 0; i < 60; i++) step();
   check('in the Ocean layer', g().world.key === 'ocean');
   const oy0 = g().P.y;
-  press('ArrowUp'); step();
-  for (let i = 0; i < 25; i++) step();
-  check('pressing up makes Cokco swim upward', g().P.y < oy0 - 20);
-  release('ArrowUp');
+  for (let k = 0; k < 5; k++){                 // each tap of up is a short kick
+    press('ArrowUp'); step(); release('ArrowUp');
+    for (let i = 0; i < 6; i++) step();
+  }
+  check('tapping up repeatedly swims Cokco upward', g().P.y < oy0 - 40);
 
   const tight = g().world.solids.find(s => s.kind === 'tight');
   g().P.floatT = 0;
