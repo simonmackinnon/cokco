@@ -219,13 +219,13 @@ try {
   press('Digit3'); step();
   check('picking door 3 warps Cokco there', g().mode === 'play' && Math.abs(g().P.x - (dest.x - g().P.w / 2)) < 4);
 
-  // --- chests give coins (or, rarely, a gem) ---
+  // --- chests give coins (or, rarely, a gem or a battery) ---
   const ch = g().world.chests[0];
-  const wealth0 = g().G.coins + g().G.gems;
+  const wealth0 = g().G.coins + g().G.gems + g().invCount('battery');
   g().P.x = ch.x - g().P.w / 2; g().P.y = ch.y - g().P.h;
   step();
   press('KeyE'); step();
-  check('opening a chest adds coins or a gem', g().G.coins + g().G.gems > wealth0);
+  check('opening a chest gives loot', g().G.coins + g().G.gems + g().invCount('battery') > wealth0);
   check('chest marked opened in save', g().G.chests['home:c0'] === true);
   g().P.x = 120; g().P.y = 690;
 
@@ -413,6 +413,38 @@ try {
   for (let i = 0; i < 40; i++) step();
   release('ArrowUp');
   check('holding up flies upward', g().P.y < flyY0 - 40);
+  release('ArrowUp');
+  for (let k = 0; k < 6 && g().P.form !== 'normal'; k++) { press('KeyQ'); step(); }
+
+  // --- Dirt-layer fly problem: fly into the roof alcove for Pip's Cave Crystal ---
+  g().travel('dirt', 'spawn');
+  for (let i = 0; i < 45; i++) step();
+  check('back in the Dirt layer', g().world.key === 'dirt');
+  const pip = g().world.npcs.find(n => n.name === 'Pip');
+  g().P.x = pip.x - g().P.w / 2; g().P.y = pip.y - g().P.h; step();
+  press('KeyE'); step();
+  for (let i = 0; i < 3; i++) { press('KeyE'); step(); }        // accept the quest
+  check('Pip gives the dirtfly quest', g().G.quests.dirtfly === 'active');
+  // fly up beside the high ledge, then over onto it for the crystal
+  const dledge = g().world.solids.find(s => s.x === 1640 && s.kind === 'dirt');
+  // the ledge is ~390px up - out of jump range; confirm fly rises, then (to keep the
+  // test independent of piloting) place Cokco on the ledge and collect the crystal.
+  g().P.x = 1650; g().P.y = 560; g().P.vx = 0; g().P.vy = 0;
+  for (let i = 0; i < 6; i++) step();
+  for (let k = 0; k < 6 && g().P.form !== 'fly'; k++) { press('KeyQ'); step(); }
+  check('became fly form in the Dirt layer', g().P.form === 'fly');
+  const dfY0 = g().P.y;
+  press('ArrowUp'); for (let i = 0; i < 30; i++) step(); release('ArrowUp');
+  check('fly rises toward the high ledge', g().P.y < dfY0 - 60);
+  const crystal = g().world.pickups.find(p => p.id === 'cave-crystal');
+  g().P.x = crystal.x - g().P.w / 2; g().P.y = dledge.y - g().P.h; g().P.vx = 0; g().P.vy = 0;
+  for (let i = 0; i < 6; i++) step();
+  check('collected the Cave Crystal from the ledge', g().invCount('cave-crystal') === 1);
+  for (let k = 0; k < 6 && g().P.form !== 'normal'; k++) { press('KeyQ'); step(); }
+  g().P.x = pip.x - g().P.w / 2; g().P.y = pip.y - g().P.h; step();
+  press('KeyE'); step();
+  for (let i = 0; i < 3; i++) { press('KeyE'); step(); }
+  check('Pip pays out for the Cave Crystal', g().G.quests.dirtfly === 'done' && g().invCount('battery') >= 1);
 
   g().travel('home', 'spawn');
   for (let i = 0; i < 40; i++) step();

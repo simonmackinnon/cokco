@@ -277,7 +277,7 @@ function blankSave(){
   return {
     world: 'home', px: null, py: null,
     quests: { ocean:'inactive', craft:'inactive', pearl:'inactive',
-              hammer:'inactive', swim:'inactive', slime:'inactive', block:'inactive', climb:'inactive' },
+              hammer:'inactive', swim:'inactive', slime:'inactive', block:'inactive', climb:'inactive', dirtfly:'inactive' },
     flags:  { greenStairs:false, oceanCalm:false, grabber:false, allSolvedSeen:false },
     orbs:   { hammer:false, slime:false, snake:false, fly:false },   // unlocked Cokco-orb forms
     inv: [],            // [{id, qty}]  -  10 slots, 20 per slot
@@ -324,6 +324,7 @@ const ITEMS = {
   spyglass:      { name: 'Spyglass',        icon: '🔭' },
   battery:       { name: 'Battery',         icon: '🔋' },                    // some machines need one
   'urchin-fossil': { name: 'Urchin Fossil', icon: '🦴' },                    // the museum's top-shelf exhibit
+  'cave-crystal':  { name: 'Cave Crystal',  icon: '🔮' },                    // Pip's, up in the Dirt-layer alcove
   kite:          { name: 'Kite',            icon: '🪁' },                    // Sandy's, on the secret cliff
 };
 function itemName(id){ return (ITEMS[id] && ITEMS[id].name) || id; }
@@ -551,12 +552,16 @@ const WORLDS = {
       { x:0,   y:600, w:2200, h:120, kind:'dirt' },
       { x:0,   y:0,   w:940,  h:556, kind:'dirt' },   // tunnel ceiling (44px of headroom - walk, no jumping)
       { x:2200, y:0,  w:16,   h:720, kind:'wall' },
+      // a ledge high on the cavern wall - too high to jump; only the FLYING orb reaches it
+      { x:1640, y:210, w:300, h:16, kind:'dirt' },      // the high ledge (open above + to the left)
     ],
-    elevators: [], boxes: [], gemBoxes: [], holes: [], tables: [], pickups: [],
+    elevators: [], boxes: [], gemBoxes: [], holes: [], tables: [],
+    pickups: [ { x:1710, y:184, id:'cave-crystal' } ],   // up on the high ledge
     doors:   [ { x:60, y:600, target:'home', arrival:'fromDirt', label:'Up' } ],
     chests:  [ { x:1980, y:600 } ],
     machines:[ { x:1520, y:600, kind:'gacha', needsBattery: false } ],  // this one runs on nothing but a card
     npcs: [
+      { x:1040, y:600, name:'Pip',    color:'#b09a86', shape:'rock',    quest:'dirtfly' },
       { x:1180, y:600, name:'Blok',   color:'#caa257', shape:'crafter', action:'shop',
         stock: [ { id:'urchin-block', cost:4 }, { id:'battery', cost:6 } ] },
       { x:1760, y:600, name:'Nugget', color:'#e0c060', shape:'seller', action:'mine', cost:8 },
@@ -660,6 +665,15 @@ const QUESTS = {
     active: ["Become the snake (Q), climb the cliff wall (press into it + hold up), and grab the kite."],
     turnin: ["MY KITE! You climbed the whole thing! Here - 10 Cokco-coins AND a FLYING ORB. Enjoy the sky."],
     done:   ["Best kite-flying weather today. All thanks to you."],
+  },
+  dirtfly: {
+    title: 'The crystal in the alcove', giver: 'Pip',
+    offer: ["See that Cave Crystal glowing up in the alcove? Wedged there since the cave-in.",
+            "No ladder reaches, and it's way too high to jump. But with the FLYING ORB...",
+            "Press Q to become the flyer, hold up to soar into the alcove, and bring it down to me."],
+    active: ["Become the flyer (Q), hold up to fly into the roof alcove, and grab the Cave Crystal."],
+    turnin: ["My Crystal! Lights the whole shop row. Here - coins and a Battery for your trouble."],
+    done:   ["Prettiest thing in the Dirt layer, that Crystal. Thanks, flyer."],
   },
 };
 
@@ -1150,6 +1164,8 @@ const QUEST_HOOKS = {
   climb:  { ready: () => invCount('kite') >= 1,
             reward: () => { invRemove('kite', 1); G.coins += 10; G.orbs.fly = true;
                             toast('FLYING ORB unlocked!  Press Q to fly.'); } },
+  dirtfly:{ ready: () => invCount('cave-crystal') >= 1,
+            reward: () => { invRemove('cave-crystal', 1); G.coins += 8; invAdd('battery', 1); } },
 };
 
 /* ---------- 9. dialogue ---------- */
@@ -2135,11 +2151,14 @@ function objectiveFor(id){
   if (id === 'climb') return invCount('kite') >= 1
     ? "Take the kite back to Sandy."
     : 'Become the snake (Q), climb the cliff wall (into it + hold ↑), and grab the kite.';
+  if (id === 'dirtfly') return invCount('cave-crystal') >= 1
+    ? 'Take the Cave Crystal to Pip.'
+    : 'Become the flyer (Q), hold ↑ to fly into the Dirt-layer alcove, grab the Cave Crystal.';
   return '';
 }
 function primaryObjective(){
   const q = G.quests;
-  for (const id of ['ocean', 'hammer', 'swim', 'slime', 'block', 'climb', 'craft', 'pearl'])
+  for (const id of ['ocean', 'hammer', 'swim', 'slime', 'block', 'climb', 'dirtfly', 'craft', 'pearl'])
     if (q[id] === 'active' || q[id] === 'ready') return objectiveFor(id) || 'Talk to the creatures.';
   if (Object.values(q).every(s => s === 'done')) return 'Explore — new problems will appear.';
   return 'Talk to the creatures. They each have a problem.';
