@@ -62,8 +62,8 @@ jobs:
       (needs.terraform.result == 'success' || needs.terraform.result == 'skipped')
     runs-on: ubuntu-latest
     env:
-      SITE_BUCKET: cokco.theclouddevopslearningblog.com
-      SITE_DOMAIN: cokco.theclouddevopslearningblog.com
+      SITE_BUCKET: coco.theclouddevopslearningblog.com
+      SITE_DOMAIN: coco.theclouddevopslearningblog.com
     steps:
       - uses: actions/checkout@v7
       - uses: aws-actions/configure-aws-credentials@v6

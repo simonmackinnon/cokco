@@ -1,6 +1,6 @@
 {
   "Version": "2012-10-17",
-  "Comment": "Minimum permissions for the CI user (AWS_ACCESS_KEY_ID / AWS_SECRET_ACCESS_KEY) that runs .github/workflows/deploy.yml for the cokco project. Scope the S3 statements down to the two buckets if you don't share this user across projects.",
+  "Comment": "Minimum permissions for the CI user (AWS_ACCESS_KEY_ID / AWS_SECRET_ACCESS_KEY) that runs .github/workflows/deploy.yml for the coco project. The Terraform state bucket keeps its legacy 'cokco-terraform-state-*' name; the public site bucket is 'coco.theclouddevopslearningblog.com'. Scope the S3 statements down if you don't share this user across projects.",
   "Statement": [
     {
       "Sid": "TerraformState",
@@ -16,8 +16,8 @@
       "Effect": "Allow",
       "Action": ["s3:*"],
       "Resource": [
-        "arn:aws:s3:::cokco.theclouddevopslearningblog.com",
-        "arn:aws:s3:::cokco.theclouddevopslearningblog.com/*"
+        "arn:aws:s3:::coco.theclouddevopslearningblog.com",
+        "arn:aws:s3:::coco.theclouddevopslearningblog.com/*"
       ]
     },
     {

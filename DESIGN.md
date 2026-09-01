@@ -1,4 +1,4 @@
-# Cokco — design notes
+# Coco — design notes
 
 This is a game designed by Avery (a kid) on three sheets of paper — a blue rules
 page, a grid-paper level map, and a pink note about the catching minigame. The
@@ -11,9 +11,9 @@ tracks what the code does so far.
   — the blocks are boxes with **sea urchins inside**.
 - **Drop-holes**: the player drops through a hole in the floor to go to the next
   **"world" / "layer"** (one of them is the *Ocean layer*).
-- The player is **Cokco** — a made-up creature. Round. No hair. Colour doesn't
+- The player is **Coco** — a made-up creature. Round. No hair. Colour doesn't
   matter. Medium-length lines for arms and legs.
-- Cokco **walks around and talks to things** — other characters (NPCs) that
+- Coco **walks around and talks to things** — other characters (NPCs) that
   **don't move**.
 - **No end to the game.** The goal is to **solve all the problems** the NPCs tell
   you about. Example: a **worm NPC** asks you to investigate the next world; there
@@ -32,10 +32,10 @@ tracks what the code does so far.
 
 | From the drawing | In the game |
 | --- | --- |
-| Round hairless creature, line limbs | `drawCokco()` — circle body, cream belly, two dot eyes, stick arms/legs, squash on landing |
+| Round hairless creature, line limbs | `drawCoco()` — circle body, cream belly, two dot eyes, stick arms/legs, squash on landing |
 | Walk + talk to still NPCs | Full platformer movement; press `E` near an NPC for a dialogue box |
-| Stairs | Step-shaped solids; Cokco auto-steps up ledges ≤ 16px |
-| Elevator, "5 seconds up then down" | `elevators` — rides bottom→top→bottom, 5s each way, carries Cokco |
+| Stairs | Step-shaped solids; Coco auto-steps up ledges ≤ 16px |
+| Elevator, "5 seconds up then down" | `elevators` — rides bottom→top→bottom, 5s each way, carries Coco |
 | "green stairs appear at the top" | `kind:'green'` solids stay hidden until the elevator touches its top |
 | Blocks = boxes with sea urchins | `boxes` — bonk from below or press `E`; urchins scatter as pickups |
 | Drop-holes to the next world | `holes` — fall in → travel to another world's arrival point |
@@ -55,14 +55,14 @@ tracks what the code does so far.
 | Crafting tables (fixed spots for now) | `tables` in `WORLDS`; `E` opens the `craft` panel. Later: bootstrap-craft / buy / find one |
 | Doors that travel between points in a level; choose by number | `doors` in `WORLDS`; `E` → `door` panel, pick by number key or tap; numbers match the in-world signs. Intra-world only for now |
 | Grass/ground more block-style (2D Minecraft) | `drawSolid()` — tiled dirt/stone blocks + a grass cap with blades |
-| Chests with Cokco-coins / rarely gems; rare gem boxes always gems | `chests` + `gemBoxes` in `WORLDS`; `G.coins` / `G.gems` counters, HUD-shown |
+| Chests with Coco-coins / rarely gems; rare gem boxes always gems | `chests` + `gemBoxes` in `WORLDS`; `G.coins` / `G.gems` counters, HUD-shown |
 | Day & night on the user's real system time | `dayFactor()` off `new Date()`; `drawNightTint()` + sky blend + moon/stars; a Lantern softens it |
 
 ## Avery's round-3 feedback (built)
 
 | Feedback | In the game |
 | --- | --- |
-| Cokco-orbs — transform into an element/thing (slime, hammer, …) | `FORMS` + `cycleForm()` (`Q` / touch button). **slime** shrinks the body & skips `kind:'tight'` solids; **hammer** smashes `kind:'rock'` solids on `E`. `drawCokco()` branches per form. More orbs = add to `FORMS` + a `G.orbs` flag |
+| Coco-orbs — transform into an element/thing (slime, hammer, …) | `FORMS` + `cycleForm()` (`Q` / touch button). **slime** shrinks the body & skips `kind:'tight'` solids; **hammer** smashes `kind:'rock'` solids on `E`. `drawCoco()` branches per form. More orbs = add to `FORMS` + a `G.orbs` flag |
 | Challenges/NPC problems that need the orbs | quests `hammer` (Boulda → Hammer Orb → smash the boulder) and `slime` (Nook → the sealed crack) |
 | Swimming — tap up for a ~0.5s kick upward, keep tapping to climb | the `w.floaty` branch of `updatePlay()` — each `tapped('jump')` sets `P.floatT = 0.5`; a strong upward ease while it lasts, gentle sink otherwise; wider horizontal control |
 | NPC problem only solvable by swimming | quest `swim` (Marlo's Spyglass, atop a pillar higher than any jump) |
@@ -73,11 +73,11 @@ tracks what the code does so far.
 
 | Feedback | In the game |
 | --- | --- |
-| Sea Urchin Blocks you can *place*, jump on, and use to reach high places | `toggleBlock()` on `B` — grid-snapped block in front of Cokco, `kind:'placed'` solid, stored in `G.placed[world]`, `B` again picks it up. `drawUrchinBlock()` for the visual |
+| Sea Urchin Blocks you can *place*, jump on, and use to reach high places | `toggleBlock()` on `B` — grid-snapped block in front of Coco, `kind:'placed'` solid, stored in `G.placed[world]`, `B` again picks it up. `drawUrchinBlock()` for the visual |
 | NPC problem only solvable with a placed block | quest `block` — Curato in the Water-Works; stack blocks to a `ledge` at y496 (far above any jump) for the Urchin Fossil |
 | Water-Works layer — a water museum + fun-park | `WORLDS.waterworks` (`bg:'waterworks'` — exhibit tanks, a spinning fun-park wheel); door from the Ocean layer |
 | Dirt layer — a tunnel to shops; buy blocks with coins; a gold-mining shop | `WORLDS.dirt` (`bg:'dirt'` — a `kind:'dirt'` ceiling forms the low tunnel, torch glows in the cavern), reached by a **Cave door in the Ocean layer**. **Blok** `action:'shop'` (`PANEL.shop` + `buyFromShop()`); **Nugget** `action:'mine'` → `goMining()` pays coins for `G.gold`. Also a fly-only quest `dirtfly` (Pip's Cave Crystal on a high ledge) |
-| Machines that take a Cokco card for a random item; some need a battery | `machines` `kind:'gacha'` + `needsBattery` → `useMachine()` / `weightedPick()`. `battery` item (also drops from chests, sold by Blok). `grant()` routes prizes to the bag or a counter |
+| Machines that take a Coco card for a random item; some need a battery | `machines` `kind:'gacha'` + `needsBattery` → `useMachine()` / `weightedPick()`. `battery` item (also drops from chests, sold by Blok). `grant()` routes prizes to the bag or a counter |
 
 ## Avery's round-5 feedback (built)
 
@@ -85,16 +85,16 @@ tracks what the code does so far.
 | --- | --- |
 | Secret Beach layer | `WORLDS.beach` (`bg:'beach'`) — reached by a `target` door at Home that only exists **behind the smashed boulder** (the boulder is now too tall to jump) |
 | Snake orb from an orb-chest as soon as you enter | `orbChests: [{x,y,orb:'snake'}]` at the shore; `openChest()` handles `o.orbId` → `G.orbs[orb]=true`. `drawOrbChest()` (glowing) |
-| Snake orb climbs walls | `FORMS.snake` (thin) + the `climbing` branch of `updatePlay()` — `P.touchWall` (set in `moveX`) + hold ↑/↓; tap jump to hop off. `drawCokco()` snake branch |
+| Snake orb climbs walls | `FORMS.snake` (thin) + the `climbing` branch of `updatePlay()` — `P.touchWall` (set in `moveX`) + hold ↑/↓; tap jump to hop off. `drawCoco()` snake branch |
 | NPC problem only solvable by climbing | quest `climb` — Sandy's kite on a `wall` + `ledge` 490px up the cliff |
-| Two rewards on solving: 10 coins + a flying orb | `QUEST_HOOKS.climb.reward` — `G.coins += 10` **and** `G.orbs.fly = true`. `FORMS.fly` = hold ↑ to soar (reduced gravity); `drawCokco()` fly branch (wings) |
+| Two rewards on solving: 10 coins + a flying orb | `QUEST_HOOKS.climb.reward` — `G.coins += 10` **and** `G.orbs.fly = true`. `FORMS.fly` = hold ↑ to soar (reduced gravity); `drawCoco()` fly branch (wings) |
 
 ## Roadmap (not built yet)
 
 - **Two-player** — split input (P2 on `IJKL` or a gamepad), shared screen or
   drop-in co-op. The blue page starts this thought but doesn't finish it.
 - **More orbs** — the system takes a name in `FORMS` + a `G.orbs` flag + a
-  `drawCokco` branch + (usually) a new solid `kind:`; add to `ORB_ORDER`.
+  `drawCoco` branch + (usually) a new solid `kind:`; add to `ORB_ORDER`.
 - **More layers** — worlds go on forever. Add `WORLDS` entries + a drop-hole or a
   `target` door. Each new NPC adds a problem.
 - **Deeper crafting chains** — recipes that need items from several challenges.

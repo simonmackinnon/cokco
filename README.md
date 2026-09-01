@@ -1,9 +1,9 @@
-# Cokco
+# Coco
 
 A 2D platformer designed by Avery (a kid) and built with AI from the drawings.
 One HTML file, no build step.
 
-Live: **https://cokco.theclouddevopslearningblog.com**
+Live: **https://coco.theclouddevopslearningblog.com**
 
 ## Play it
 
@@ -17,7 +17,7 @@ That's the whole game. Progress saves automatically in that browser.
 | Walk | `←` `→` or `A` `D` |
 | Jump / swim up (in water) | `↑` / `W` / `Space` |
 | Talk / open / smash / scan / buy | `E` |
-| Change Cokco-orb form | `Q` |
+| Change Coco-orb form | `Q` |
 | Place / take a Sea Urchin Block | `B` |
 | Bag (inventory) | `I` |
 | Problems (quest log) | `J` |
@@ -29,7 +29,7 @@ orb / a block). Add `?touch=1` to the URL to force them on a desktop.
 
 ## What's in this first version
 
-- **Cokco** — a round, hairless made-up creature with stick arms and legs.
+- **Coco** — a round, hairless made-up creature with stick arms and legs.
 - **Two worlds ("layers")**: *Home* (grassy) and the *Ocean layer*, joined by
   **drop-holes** — fall through one and you land in the next layer.
 - **Block terrain** — the ground and grass are 2D-Minecraft-ish blocks.
@@ -42,7 +42,7 @@ orb / a block). Add `?touch=1` to the URL to force them on a desktop.
 - **Doors** — press `E` to jump between the doors in the same world; if there's a
   choice, pick by number key or tap. A door with a name-sign leads into another
   place (Sxco's Flattening Centre is through the door by your house).
-- **Cokco-orbs** — transform with `Q`. **Hammer** form smashes tough boulders
+- **Coco-orbs** — transform with `Q`. **Hammer** form smashes tough boulders
   (`E` next to one); **Slime** form is small and oozes through cracks. Unlock the
   Hammer Orb from Boulda; make a Slime Orb at the Flattening Centre — Sxco flattens
   a Sea Urchin, you craft it into an **Orb Card**, then scan the card at an **Orb
@@ -57,16 +57,16 @@ orb / a block). Add `?touch=1` to the URL to force them on a desktop.
   jump on it, stack a staircase to high places. Press `B` by one to pick it up.
   Curato at the Water-Works needs blocks stacked to a top shelf.
 - **Shops** (Dirt layer) — **Blok** sells Sea Urchin Blocks and Batteries for
-  Cokco-coins; **Nugget** takes coins to send you gold-mining.
+  Coco-coins; **Nugget** takes coins to send you gold-mining.
 - **Machines** — a **scanner** turns an Orb Card into a new orb; a **gacha**
   machine takes an Orb Card (and, for most of them, a **Battery**) and spits out a
   random item.
-- **More Cokco-orbs.** **Snake** climbs walls (become the snake with `Q`, press
+- **More Coco-orbs.** **Snake** climbs walls (become the snake with `Q`, press
   into a wall and hold up). **Fly** lets you hold up to soar. The snake orb is in
   an orb-chest on the secret beach; solving Sandy's kite puzzle there pays out 10
   coins **and** the flying orb.
-- **Chests** hold Cokco-coins (rarely a gem or a Battery). **Gem boxes** always
-  hold gems. **Orb-chests** hold a Cokco-orb.
+- **Chests** hold Coco-coins (rarely a gem or a Battery). **Gem boxes** always
+  hold gems. **Orb-chests** hold a Coco-orb.
 - **Day & night** follow your device's real clock — full day ~07–19, full night
   ~21–05, with dusk/dawn in between. A **Lantern** in your bag softens the dark.
 - **NPCs that stand still and give you problems to solve.** The goal is to solve
@@ -120,7 +120,9 @@ repo — this project only reads it). All of that is Terraform in `infra/`.
    ```
    ./scripts/bootstrap-state-bucket.sh
    ```
-   It prints a bucket name like `cokco-terraform-state-<account-id>`.
+   It prints a bucket name like `cokco-terraform-state-<account-id>` (the
+   Terraform state bucket + key keep the pre-rename `cokco` name so an apply
+   migrates the live resources; only the public domain became `coco`).
 
 2. **GitHub secrets** — repo → Settings → Secrets and variables → Actions:
 
@@ -133,7 +135,7 @@ repo — this project only reads it). All of that is Terraform in `infra/`.
 3. **Deploy** — push to `main` (or run the workflow manually). First run takes
    ~15-25 min while CloudFront and the ACM cert come up; the site upload waits for
    the bucket and then syncs. DNS is automatic — the Route53 record lands in the
-   zone that already serves the apex domain, so `cokco.` resolves as soon as
+   zone that already serves the apex domain, so `coco.` resolves as soon as
    CloudFront is ready.
 
 ### Local infra work

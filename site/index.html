@@ -3,9 +3,9 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
-<meta name="description" content="Cokco — a little 2D platformer built from a kid's game design. Explore layers, talk to creatures, solve their problems.">
+<meta name="description" content="Coco — a little 2D platformer built from a kid's game design. Explore layers, talk to creatures, solve their problems.">
 <meta name="theme-color" content="#0d1220">
-<title>Cokco</title>
+<title>Coco</title>
 <style>
   html,body{margin:0;height:100%;background:#0d1220;overflow:hidden;
     font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;color:#fff;
@@ -127,7 +127,7 @@
     </div>
   </div>
   <div id="title">
-    <h1>COKCO</h1>
+    <h1>COCO</h1>
     <p>a tiny world of problems to solve</p>
     <p class="credit">An AI-built game designed by Avery</p>
     <div style="margin-top:14px">
@@ -146,7 +146,7 @@
 <script>
 "use strict";
 /* ============================================================
-   COKCO  -  a 2D platformer built from a kid's game design.
+   COCO  -  a 2D platformer built from a kid's game design.
    One file, no build step. Just open this file in a browser.
 
    MAP OF THE CODE
@@ -179,8 +179,8 @@ function resize(){
 window.addEventListener('resize', resize);
 
 const CFG = {
-  cokco: { color: '#e4ded4', cap: '#6f6a63', w: 26, h: 34 },  // <-- Cokco: pale body + grey top cap
-  step: 16,        // tallest ledge Cokco walks straight up (this is how stairs work)
+  coco: { color: '#e4ded4', cap: '#6f6a63', w: 26, h: 34 },  // <-- Coco: pale body + grey top cap
+  step: 16,        // tallest ledge Coco walks straight up (this is how stairs work)
   coyote: 0.10,    // grace time to still jump just after walking off an edge
   buffer: 0.12,    // press jump slightly early and it still fires on landing
 };
@@ -272,16 +272,16 @@ function syncTouchUI(){
 }
 
 /* ---------- 3. save / load ---------- */
-const SAVE_KEY = 'cokco-save-v2';
+const SAVE_KEY = 'coco-save-v2';
 function blankSave(){
   return {
     world: 'home', px: null, py: null,
     quests: { ocean:'inactive', craft:'inactive', pearl:'inactive',
               hammer:'inactive', swim:'inactive', slime:'inactive', block:'inactive', climb:'inactive', dirtfly:'inactive' },
     flags:  { greenStairs:false, oceanCalm:false, grabber:false, allSolvedSeen:false },
-    orbs:   { hammer:false, slime:false, snake:false, fly:false },   // unlocked Cokco-orb forms
+    orbs:   { hammer:false, slime:false, snake:false, fly:false },   // unlocked Coco-orb forms
     inv: [],            // [{id, qty}]  -  10 slots, 20 per slot
-    coins: 0,           // Cokco-coins (from chests / shops)
+    coins: 0,           // Coco-coins (from chests / shops)
     gems: 0,            // gems (rare - from chests / gem boxes)
     gold: 0,            // gold (from the mining shop)
     mgCap: 6,           // sea-urchin basket size (grows to 10)
@@ -393,11 +393,11 @@ function invRemove(id, n){
      tables   : {x,y (feet)}          crafting table - press E to craft
      doors    : {x,y (feet)}          press E to hop to another door in the same world
                 {x,y, target, arrival} -> a door into another world instead
-     chests   : {x,y (feet)}          press E once -> Cokco-coins, rarely a gem
+     chests   : {x,y (feet)}          press E once -> Coco-coins, rarely a gem
      gemBoxes : {x,y (feet)}          rare - press E once -> always gems
      machines : {x,y (feet), kind}    kind:'scanner' -> scan an Orb Card for a new orb
-     solids kind:'rock'  -> only hammer-form Cokco can smash it (press E)
-     solids kind:'tight' -> only slime-form Cokco fits through
+     solids kind:'rock'  -> only hammer-form Coco can smash it (press E)
+     solids kind:'tight' -> only slime-form Coco fits through
    --------------------------------------------------------------------- */
 const WORLDS = {
 
@@ -409,14 +409,14 @@ const WORLDS = {
     solids: [
       { x:0,    y:770, w:1922, h:280, kind:'ground' },
       { x:2040, y:770, w:760,  h:280, kind:'ground' },
-      // staircase up to a ledge (14px steps -> Cokco walks straight up)
+      // staircase up to a ledge (14px steps -> Coco walks straight up)
       { x:470, y:756, w:46, h:294, kind:'ledge' },
       { x:512, y:742, w:46, h:308, kind:'ledge' },
       { x:554, y:728, w:46, h:322, kind:'ledge' },
       { x:596, y:714, w:46, h:336, kind:'ledge' },
       { x:638, y:700, w:220, h:16, kind:'ledge' },
       // green stairs -- appear only after the elevator touches the top.
-      // 12-14px rises so Cokco walks straight up them from the elevator.
+      // 12-14px rises so Coco walks straight up them from the elevator.
       { x:1216, y:340, w:46, h:10, kind:'green' },
       { x:1252, y:326, w:46, h:10, kind:'green' },
       { x:1288, y:312, w:46, h:10, kind:'green' },
@@ -600,11 +600,11 @@ const WORLDS = {
 const QUESTS = {
   ocean: {
     title: 'The worried worm', giver: 'Wriggo',
-    offer: ["Cokco! Something down in the Ocean layer keeps stirring up the water.",
+    offer: ["Coco! Something down in the Ocean layer keeps stirring up the water.",
             "Drop through the hole past the little steps and find out what.",
             "There's a challenge down there. Beat it and the water should settle."],
     active: ["Any luck below? Beat Clawdia's challenge, then come tell me."],
-    turnin: ["The water feels calm again... I can sense it from up here.", "Thank you, Cokco. Here, take these."],
+    turnin: ["The water feels calm again... I can sense it from up here.", "Thank you, Coco. Here, take these."],
     done:   ["The Ocean layer is peaceful now. You did good."],
   },
   craft: {
@@ -630,7 +630,7 @@ const QUESTS = {
             "Whatever's behind is yours."],
     active: ["Turn into the hammer (press Q) and smash that boulder. Press E right next to it."],
     turnin: ["You cracked it! Ha! Take what you found - you earned it."],
-    done:   ["Nice and clear back there now. Thanks, Cokco."],
+    done:   ["Nice and clear back there now. Thanks, Coco."],
   },
   swim: {
     title: "Marlo's spyglass", giver: 'Marlo',
@@ -664,7 +664,7 @@ const QUESTS = {
             "You just found a SNAKE ORB, right? Press Q to become the snake, then press into the wall and hold up to climb it.",
             "Fetch my kite and there's a double reward in it for you."],
     active: ["Become the snake (Q), climb the cliff wall (press into it + hold up), and grab the kite."],
-    turnin: ["MY KITE! You climbed the whole thing! Here - 10 Cokco-coins AND a FLYING ORB. Enjoy the sky."],
+    turnin: ["MY KITE! You climbed the whole thing! Here - 10 Coco-coins AND a FLYING ORB. Enjoy the sky."],
     done:   ["Best kite-flying weather today. All thanks to you."],
   },
   dirtfly: {
@@ -710,14 +710,14 @@ function nightAlpha(){
 }
 
 const P = {
-  x:0, y:0, w:CFG.cokco.w, h:CFG.cokco.h, vx:0, vy:0,
+  x:0, y:0, w:CFG.coco.w, h:CFG.coco.h, vx:0, vy:0,
   face:1, walk:0, squash:0,
   grounded:false, groundRef:null, headBonk:null, jumping:false,
   jumpBuf:0, coyote:0, airTime:0,
   form:'normal', floatT:0, touchWall:0,   // orb form, swim-float timer, wall-contact side (for snake climb)
 };
 
-// Cokco-orb forms.  slime is short & narrow (fits `tight` gaps); hammer is chunky.
+// Coco-orb forms.  slime is short & narrow (fits `tight` gaps); hammer is chunky.
 const FORMS = {
   normal: { w:26, h:34, speed:190, jump:1   },
   slime:  { w:20, h:18, speed:150, jump:0.55 },
@@ -741,7 +741,7 @@ function setForm(f){
 }
 function cycleForm(){
   const avail = ['normal', ...ORB_ORDER.filter(o => G.orbs[o])];
-  if (avail.length < 2){ toast('No Cokco-orbs yet.'); return; }
+  if (avail.length < 2){ toast('No Coco-orbs yet.'); return; }
   const next = avail[(avail.indexOf(P.form) + 1) % avail.length];
   if (setForm(next)) toast(next === 'normal' ? 'Back to normal.' : 'Form: ' + next.toUpperCase());
 }
@@ -767,7 +767,7 @@ function moveX(solids){
   let wall = 0;
   for (const s of solids){
     if (!aabb(P, s)) continue;
-    const overlapY = (P.y + P.h) - s.y;            // how far Cokco's feet sit below this ledge's top
+    const overlapY = (P.y + P.h) - s.y;            // how far Coco's feet sit below this ledge's top
     if (P.vx !== 0 && overlapY > 0 && overlapY <= CFG.step){
       const lifted = { x:P.x, y:s.y - P.h, w:P.w, h:P.h };
       if (!solids.some(o => o !== s && aabb(lifted, o))){ P.y = s.y - P.h; continue; } // step up (stairs)
@@ -851,7 +851,7 @@ function updatePlay(){
   // moving NPCs pace around their start point
   for (const n of w.npcs) if (n.patrol) n.x = n.baseX + Math.sin(T * 0.7 + n.baseX) * n.patrol;
 
-  // change Cokco-orb form
+  // change Coco-orb form
   if (key('KeyQ')) cycleForm();
 
   // carried by the elevator you're standing on
@@ -981,7 +981,7 @@ function updatePlay(){
 
   const machineHint = machineNear
     ? (machineNear.kind === 'scanner' ? 'E — scan an Orb Card'
-       : 'E — feed a Cokco Card' + (machineNear.needsBattery ? ' + a Battery' : ''))
+       : 'E — feed a Coco Card' + (machineNear.needsBattery ? ' + a Battery' : ''))
     : null;
   hintText = npcNear ? 'E — talk to ' + npcNear.name
            : rockNear ? (P.form === 'hammer' ? 'E — SMASH the boulder!' : 'A tough boulder. Only a hammer could break it.')
@@ -1047,12 +1047,12 @@ function openChest(o){
     invAdd('battery', 1); toast('A Battery in the chest!  🔋');
   } else {
     const n = 3 + Math.floor(rand(0, 6));
-    G.coins += n; toast('+' + n + ' Cokco-Coins 🪙');
+    G.coins += n; toast('+' + n + ' Coco-Coins 🪙');
   }
   persist();
 }
 
-// doors move Cokco between doors in the SAME world (or into another world if `target`)
+// doors move Coco between doors in the SAME world (or into another world if `target`)
 function openDoor(d){
   if (d.target){ travel(d.target, d.arrival || 'spawn'); return; }
   const others = world.doors.filter(x => x !== d && !x.target);
@@ -1084,8 +1084,8 @@ function useMachine(m){
     persist();
     return;
   }
-  // gacha: feed a Cokco Card (+ a Battery if this one needs one) -> a random item
-  if (invCount('orb-card') < 1){ toast('This machine needs a Cokco Card (an Orb Card).'); return; }
+  // gacha: feed a Coco Card (+ a Battery if this one needs one) -> a random item
+  if (invCount('orb-card') < 1){ toast('This machine needs a Coco Card (an Orb Card).'); return; }
   if (m.needsBattery && invCount('battery') < 1){ toast('This machine also needs a Battery.'); return; }
   invRemove('orb-card', 1);
   if (m.needsBattery) invRemove('battery', 1);
@@ -1108,9 +1108,9 @@ function weightedPick(pairs){
 function toggleBlock(){
   const list = G.placed[world.key] || (G.placed[world.key] = []);
   const G24 = 24;
-  const fx0 = P.x + P.w / 2 + P.face * (P.w / 2 + 26);   // a clear step in front of Cokco
+  const fx0 = P.x + P.w / 2 + P.face * (P.w / 2 + 26);   // a clear step in front of Coco
   const gx = Math.round((fx0 - G24 / 2) / G24) * G24;
-  const gy = Math.round((P.y + P.h - G24) / G24) * G24;  // block sits at Cokco's foot level
+  const gy = Math.round((P.y + P.h - G24) / G24) * G24;  // block sits at Coco's foot level
   const hit = list.findIndex(b => Math.abs(b.x - gx) < 20 && Math.abs(b.y - gy) < 28);
   if (hit >= 0){
     list.splice(hit, 1); invAdd('urchin-block', 1); persist();
@@ -1119,7 +1119,7 @@ function toggleBlock(){
   }
   if (invCount('urchin-block') < 1){ toast('No Sea Urchin Blocks. Craft one at a table.'); return; }
   const cell = { x: gx, y: gy, w: G24, h: G24 };
-  if (aabb(P, cell)) cell.x += P.face * G24;             // nudge clear if the grid snapped onto Cokco
+  if (aabb(P, cell)) cell.x += P.face * G24;             // nudge clear if the grid snapped onto Coco
   if (aabb(P, cell)){ toast('No room to place a block here.'); return; }
   if (worldSolids().some(s => aabb(cell, s))){ toast("Something's in the way."); return; }
   invRemove('urchin-block', 1); list.push({ x: cell.x, y: cell.y }); persist();
@@ -1130,14 +1130,14 @@ function toggleBlock(){
 let shopNPC = null, mineNPC = null;
 function buyFromShop(i){
   const s = shopNPC.stock[i];
-  if (G.coins < s.cost){ toast('Not enough Cokco-coins.'); return; }
+  if (G.coins < s.cost){ toast('Not enough Coco-coins.'); return; }
   G.coins -= s.cost;
   grant(s.id, 1);
   toast('Bought: ' + itemName(s.id) + '  (-' + s.cost + ' 🪙)');
   persist();
 }
 function goMining(){
-  if (G.coins < mineNPC.cost){ toast('Mining costs ' + mineNPC.cost + ' Cokco-coins.'); return; }
+  if (G.coins < mineNPC.cost){ toast('Mining costs ' + mineNPC.cost + ' Coco-coins.'); return; }
   G.coins -= mineNPC.cost;
   const g = 1 + Math.floor(rand(0, 3));
   G.gold += g;
@@ -1217,15 +1217,15 @@ function talkTo(n){
     const canPay = G.coins >= n.cost;
     dialogue = { who:n.name, i:0,
       lines: canPay
-        ? ['Gold mine\'s that way. ' + n.cost + ' Cokco-coins for a dig - deal?', '*clink*  Right then...']
-        : ['A dig costs ' + n.cost + ' Cokco-coins. Come back when your pockets jingle.'],
+        ? ['Gold mine\'s that way. ' + n.cost + ' Coco-coins for a dig - deal?', '*clink*  Right then...']
+        : ['A dig costs ' + n.cost + ' Coco-coins. Come back when your pockets jingle.'],
       end: canPay ? goMining : null };
   } else if (n.action === 'flatten'){
     const haveCard = invCount('orb-card') >= 1, haveFlat = invCount('flat-urchin') >= 1, haveUrchin = invCount('urchin') >= 1;
     const lines = haveCard
       ? ["That card's loaded. Take it to an Orb Scanner - there's one in the corner here, another down in the Ocean layer."]
       : haveFlat
-        ? ["You've a Flat Urchin already. Seal it into an Orb Card at a crafting table (needs 2 Cokco-coins for the card)."]
+        ? ["You've a Flat Urchin already. Seal it into an Orb Card at a crafting table (needs 2 Coco-coins for the card)."]
         : haveUrchin
           ? ["Sxco's the name, flattening's my game.", "One Sea Urchin - in the press it goes...", "*KA-CHUNK!*  There: one Flat Urchin. Card it up, then scan the card."]
           : ["Sxco's the name, flattening's my game.", "Bring me a Sea Urchin and my machine will press it flat."];
@@ -1347,10 +1347,10 @@ function finishMinigame(){
 function makeBubbles(w){
   w._bub = Array.from({ length: 34 }, () => ({ x:rand(0, VW), y:rand(0, VH), r:rand(2, 6), s:rand(15, 45) }));
 }
-// Cokco, drawn to match Avery's picture: one round body, the top ~40% filled a
+// Coco, drawn to match Avery's picture: one round body, the top ~40% filled a
 // flat grey (not hair) with a divider line, two big oval eyes, straight stick
 // arms angled up-and-out, and two short splayed legs.
-function drawCokco(x, y, faceEyes, walk, squash, form){
+function drawCoco(x, y, faceEyes, walk, squash, form){
   form = form || 'normal';
   if (form === 'slime'){
     const w = FORMS.slime.w, h = FORMS.slime.h, cx = x + w/2, cy = y + h/2;
@@ -1420,10 +1420,10 @@ function drawCokco(x, y, faceEyes, walk, squash, form){
     ctx.fillStyle = 'rgba(255,255,255,.85)'; ctx.strokeStyle = '#b9c6d6'; ctx.lineWidth = 1.5;
     ctx.beginPath(); ctx.ellipse(cx - r, by - 2, 10, 5, -0.5 + flap * 0.03, 0, 7); ctx.fill(); ctx.stroke();
     ctx.beginPath(); ctx.ellipse(cx + r, by - 2, 10, 5, 0.5 - flap * 0.03, 0, 7); ctx.fill(); ctx.stroke();
-    ctx.fillStyle = CFG.cokco.color;
+    ctx.fillStyle = CFG.coco.color;
     ctx.beginPath(); ctx.arc(cx, by, r, 0, 7); ctx.fill();
     ctx.strokeStyle = '#20242b'; ctx.lineWidth = 2.2; ctx.stroke();
-    ctx.fillStyle = CFG.cokco.cap;
+    ctx.fillStyle = CFG.coco.cap;
     ctx.save(); ctx.beginPath(); ctx.arc(cx, by, r, 0, 7); ctx.clip();
     ctx.fillRect(cx - r - 1, by - r - 1, 2 * r + 2, r * 0.82); ctx.restore();
     ctx.fillStyle = '#242222';
@@ -1433,7 +1433,7 @@ function drawCokco(x, y, faceEyes, walk, squash, form){
     ctx.restore();
     return;
   }
-  const w = CFG.cokco.w, h = CFG.cokco.h, cx = x + w/2, r = w/2, by = y + r + 2;
+  const w = CFG.coco.w, h = CFG.coco.h, cx = x + w/2, r = w/2, by = y + r + 2;
   const sw = Math.sin(walk) * 3, aw = Math.sin(walk) * 2;
   ctx.save();
   ctx.lineCap = 'round'; ctx.lineJoin = 'round';
@@ -1455,12 +1455,12 @@ function drawCokco(x, y, faceEyes, walk, squash, form){
   ctx.scale(1 - squash * 0.18, 1 + squash * 0.22);
   const dv = -r * 0.18, hw = Math.sqrt(r * r - dv * dv);
 
-  ctx.fillStyle = CFG.cokco.color;
+  ctx.fillStyle = CFG.coco.color;
   ctx.beginPath(); ctx.arc(0, 0, r, 0, 7); ctx.fill();
 
   ctx.save();                                   // grey top cap, clipped to the circle
   ctx.beginPath(); ctx.arc(0, 0, r, 0, 7); ctx.clip();
-  ctx.fillStyle = CFG.cokco.cap;
+  ctx.fillStyle = CFG.coco.cap;
   ctx.fillRect(-r - 1, -r - 1, 2 * r + 2, dv + r + 1);
   ctx.restore();
 
@@ -1524,7 +1524,7 @@ function drawCreature(n){
     ctx.closePath(); ctx.fill(); ctx.stroke();
     ctx.fillStyle = '#20242b'; ctx.beginPath(); ctx.arc(x - 4, y - 15, 1.9, 0, 7); ctx.arc(x + 5, y - 15, 1.9, 0, 7); ctx.fill();
   } else if (n.shape === 'sxco'){
-    // Cokco-ish but with a press-machine helmet + a lever arm
+    // Coco-ish but with a press-machine helmet + a lever arm
     ctx.fillStyle = n.color; ctx.beginPath(); ctx.arc(x, y - 17, 13, 0, 7); ctx.fill();
     ctx.fillStyle = '#5b6472'; ctx.fillRect(x - 13, y - 30, 26, 7);
     ctx.strokeStyle = '#8a8f98'; ctx.lineWidth = 3; ctx.lineCap = 'round';
@@ -1974,7 +1974,7 @@ function renderWorld(){
 
   for (const n of world.npcs) drawCreature(n);
 
-  drawCokco(P.x, P.y, P.face, P.walk, P.squash, P.form);
+  drawCoco(P.x, P.y, P.face, P.walk, P.squash, P.form);
 
   ctx.restore();
 
@@ -2019,14 +2019,14 @@ function renderMinigame(){
 
   for (const u of MG.urchins) drawUrchin(u);
 
-  // basket + Cokco
+  // basket + Coco
   const bw = basketW(), by = basketY();
   ctx.strokeStyle = '#d8c090'; ctx.lineWidth = 5;
   ctx.beginPath(); ctx.arc(MG.bx, by + 6, bw / 2, Math.PI, 2 * Math.PI); ctx.stroke();
   ctx.beginPath(); ctx.moveTo(MG.bx - bw / 2, by + 6); ctx.lineTo(MG.bx + bw / 2, by + 6); ctx.stroke();
   ctx.fillStyle = '#7a3b6b';
   for (let i = 0; i < MG.basket.length; i++){ ctx.beginPath(); ctx.arc(MG.bx - bw/2 + 10 + i * 12, by, 4, 0, 7); ctx.fill(); }
-  drawCokco(MG.bx - 13, by + 14, 0, held('left') || held('right') ? T * 12 : 0, 0);
+  drawCoco(MG.bx - 13, by + 14, 0, held('left') || held('right') ? T * 12 : 0, 0);
 
   // HUD
   ctx.fillStyle = '#fff'; ctx.textAlign = 'left'; ctx.font = 'bold 20px system-ui';
@@ -2066,7 +2066,7 @@ const PANEL = {
       slots += '<div class="slot">' + ic + '<div>' + esc(it.name) + '</div><div class="q">x' + s.qty + '</div></div>';
     }
     return '<h2>Bag</h2><p style="opacity:.7;font-size:13px">10 pockets &middot; up to 20 of each' +
-           '<br>🪙 ' + G.coins + ' Cokco-Coins &middot; 💎 ' + G.gems + ' gems</p>' +
+           '<br>🪙 ' + G.coins + ' Coco-Coins &middot; 💎 ' + G.gems + ' gems</p>' +
            '<div class="grid">' + slots + '</div>' +
            '<button class="btn" data-act="resume">Close</button>';
   },
@@ -2092,7 +2092,7 @@ const PANEL = {
     const rows = shopNPC.stock.map((s, i) => {
       const ok = G.coins >= s.cost;
       return '<div class="qz"><b>' + esc(itemName(s.id)) + '</b>' +
-        '<div class="o">' + s.cost + ' Cokco-coins <span style="opacity:.6">(you have ' + G.coins + ')</span></div>' +
+        '<div class="o">' + s.cost + ' Coco-coins <span style="opacity:.6">(you have ' + G.coins + ')</span></div>' +
         '<button class="btn' + (ok ? '' : ' alt') + '" data-act="buy:' + i + '"' + (ok ? '' : ' disabled') + '>Buy</button></div>';
     }).join('');
     return '<h2>' + esc(shopNPC.name) + "&rsquo;s shop</h2>" + rows + '<button class="btn alt" data-act="resume">Leave</button>';

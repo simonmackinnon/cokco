@@ -7,7 +7,7 @@ variable "aws_region" {
 variable "site_domain" {
   description = "Public hostname the game is served from"
   type        = string
-  default     = "cokco.theclouddevopslearningblog.com"
+  default     = "coco.theclouddevopslearningblog.com"
 }
 
 variable "hosted_zone_name" {
@@ -19,5 +19,5 @@ variable "hosted_zone_name" {
 variable "project" {
   description = "Short slug used for tags and resource comments"
   type        = string
-  default     = "cokco"
+  default     = "coco"
 }

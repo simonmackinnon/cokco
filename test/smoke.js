@@ -1,4 +1,4 @@
-// Headless smoke test for cokco/index.html — stubs the DOM + canvas, boots the
+// Headless smoke test for coco/index.html — stubs the DOM + canvas, boots the
 // game script, then drives it through play / panels / travel / minigame and
 // asserts nothing throws and state advances.
 const fs = require('fs');
@@ -115,7 +115,7 @@ let T = 0;
 let rafCb = null;
 
 vm.createContext(sandbox);
-vm.runInContext(code, sandbox, { filename: 'cokco.js' });
+vm.runInContext(code, sandbox, { filename: 'coco.js' });
 
 function step(ms = 32) { T += ms; rafCb(T); }
 function press(code) { fire('keydown', { code, repeat: false, preventDefault() {} }); }
@@ -144,32 +144,32 @@ try {
   press('ArrowRight');
   for (let i = 0; i < 30; i++) step();
   release('ArrowRight');
-  check('Cokco moved right', g().P.x > x0 + 20);
-  check('Cokco is on the ground', g().P.grounded === true);
+  check('Coco moved right', g().P.x > x0 + 20);
+  check('Coco is on the ground', g().P.grounded === true);
 
   // jump
   press('ArrowUp');
   step();
   release('ArrowUp');
   for (let i = 0; i < 6; i++) step();
-  check('Cokco left the ground after a jump', g().P.airTime > 0 || g().P.vy !== 0);
+  check('Coco left the ground after a jump', g().P.airTime > 0 || g().P.vy !== 0);
   for (let i = 0; i < 40; i++) step();
-  check('Cokco landed again', g().P.grounded === true);
+  check('Coco landed again', g().P.grounded === true);
 
   // --- on-screen touch controls feed the same input path ---
   check('touch mode marker follows game mode', getEl('touch').dataset.mode === 'play');
   const tx0 = g().P.x;
   touchBtn('ArrowRight')._fire('pointerdown', { pointerId: 1 });
   for (let i = 0; i < 25; i++) step();
-  check('holding the on-screen ▶ moves Cokco right', g().P.x > tx0 + 20);
+  check('holding the on-screen ▶ moves Coco right', g().P.x > tx0 + 20);
   touchBtn('ArrowRight')._fire('pointerup', { pointerId: 1 });
   for (let i = 0; i < 20; i++) step();
-  check('releasing the ▶ button stops Cokco', Math.abs(g().P.vx) < 5);
+  check('releasing the ▶ button stops Coco', Math.abs(g().P.vx) < 5);
   touchBtn('ArrowUp')._fire('pointerdown', { pointerId: 1 });
   step();
   touchBtn('ArrowUp')._fire('pointerup', { pointerId: 1 });
   for (let i = 0; i < 6; i++) step();
-  check('tapping the on-screen ▲ makes Cokco jump', g().P.grounded === false);
+  check('tapping the on-screen ▲ makes Coco jump', g().P.grounded === false);
   for (let i = 0; i < 45; i++) step();
   touchBtn('KeyI')._fire('pointerdown', { pointerId: 1 });
   step();
@@ -217,7 +217,7 @@ try {
   check('door opens the "which door?" panel', g().mode === 'panel' && g().panelKind === 'door');
   const dest = g().world.doors.find(d => d.num === 3);
   press('Digit3'); step();
-  check('picking door 3 warps Cokco there', g().mode === 'play' && Math.abs(g().P.x - (dest.x - g().P.w / 2)) < 4);
+  check('picking door 3 warps Coco there', g().mode === 'play' && Math.abs(g().P.x - (dest.x - g().P.w / 2)) < 4);
 
   // --- chests give coins (or, rarely, a gem or a battery) ---
   const ch = g().world.chests[0];
@@ -229,7 +229,7 @@ try {
   check('chest marked opened in save', g().G.chests['home:c0'] === true);
   g().P.x = 120; g().P.y = 690;
 
-  // --- Cokco-orbs: unlock hammer, change form with Q ---
+  // --- Coco-orbs: unlock hammer, change form with Q ---
   g().G.orbs.hammer = true;
   press('KeyQ'); step();
   check('Q switches to hammer form', g().P.form === 'hammer' && g().P.w === g().FORMS.hammer.w);
@@ -277,7 +277,7 @@ try {
     press('ArrowUp'); step(); release('ArrowUp');
     for (let i = 0; i < 6; i++) step();
   }
-  check('tapping up repeatedly swims Cokco upward', g().P.y < oy0 - 40);
+  check('tapping up repeatedly swims Coco upward', g().P.y < oy0 - 40);
 
   const tight = g().world.solids.find(s => s.kind === 'tight');
   g().P.floatT = 0;
@@ -292,7 +292,7 @@ try {
   // return to normal form for the remaining (form-agnostic) checks
   g().P.x = 150; g().P.y = 700;
   for (let k = 0; k < 3 && g().P.form !== 'normal'; k++) { press('KeyQ'); step(); }
-  check('cycled Cokco back to normal form', g().P.form === 'normal');
+  check('cycled Coco back to normal form', g().P.form === 'normal');
 
   // ================= round 4 =================
   g().travel('home', 'spawn');
@@ -309,7 +309,7 @@ try {
   press('KeyB'); step();
   check('pressing B by a placed block picks it back up', g().invCount('urchin-block') === nBlkBefore && (g().G.placed.home || []).length === 0);
 
-  // --- gacha machine: needs a Cokco Card, and (this one) a Battery ---
+  // --- gacha machine: needs a Coco Card, and (this one) a Battery ---
   const gacha = g().world.machines.find(m => m.kind === 'gacha');
   g().P.x = gacha.x - g().P.w / 2; g().P.y = gacha.y - g().P.h; step();
   const inv0 = g().invCount('urchin') + g().invCount('shell') + g().invCount('urchin-block')
@@ -319,7 +319,7 @@ try {
   g().invAdd('orb-card', 2); g().invAdd('battery', 3);   // plenty
   const cardBefore = g().invCount('orb-card');
   press('KeyE'); step();
-  check('gacha consumes the Cokco Card', g().invCount('orb-card') === cardBefore - 1 && g().mode === 'play');
+  check('gacha consumes the Coco Card', g().invCount('orb-card') === cardBefore - 1 && g().mode === 'play');
 
   // --- shops in the Dirt layer, reached by the Cave door in the Ocean layer ---
   g().travel('ocean', 'spawn');
@@ -402,7 +402,7 @@ try {
   press('KeyE'); step();                    // accept the quest...
   for (let i = 0; i < 12; i++) { press('KeyE'); step(); }   // ...then turn in the kite
   press('Escape'); step();                  // make sure we're back in play
-  check('Sandy pays 10 Cokco-coins', g().G.coins === coinsPreKite + 10);
+  check('Sandy pays 10 Coco-coins', g().G.coins === coinsPreKite + 10);
   check('Sandy unlocks the Flying Orb', g().G.orbs.fly === true);
   check('the climb quest is solved', g().G.quests.climb === 'done');
 
@@ -431,7 +431,7 @@ try {
   // fly up beside the high ledge, then over onto it for the crystal
   const dledge = g().world.solids.find(s => s.x === 1640 && s.kind === 'dirt');
   // the ledge is ~390px up - out of jump range; confirm fly rises, then (to keep the
-  // test independent of piloting) place Cokco on the ledge and collect the crystal.
+  // test independent of piloting) place Coco on the ledge and collect the crystal.
   g().P.x = 1650; g().P.y = 560; g().P.vx = 0; g().P.vy = 0;
   for (let i = 0; i < 6; i++) step();
   for (let k = 0; k < 6 && g().P.form !== 'fly'; k++) { press('KeyQ'); step(); }
@@ -478,8 +478,8 @@ try {
   for (let i = 0; i < 40; i++) step();
   check('arrived in ocean', g().world.key === 'ocean');
   check('back in play mode after transition', g().mode === 'play');
-  for (let i = 0; i < 60; i++) step(); // let Cokco fall onto the sand
-  check('Cokco grounded in ocean', g().P.grounded === true);
+  for (let i = 0; i < 60; i++) step(); // let Coco fall onto the sand
+  check('Coco grounded in ocean', g().P.grounded === true);
 
   // open a box by teleporting under a floating one and jumping
   const box = g().world.boxes[0];
@@ -531,7 +531,7 @@ try {
   check('exactly 3 urchins consumed', g().invCount('urchin') === urchBefore - 3);
 
   // save round-trips
-  check('save written', !!store['cokco-save-v2']);
+  check('save written', !!store['coco-save-v2']);
 
   console.log('\nframes simulated, final mode:', g().mode, '| world:', g().world.key);
 } catch (e) {
